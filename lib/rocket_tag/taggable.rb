@@ -118,8 +118,7 @@ module RocketTag
               # Ensure the tags are loaded
               cache_tags
 
-              @tag_cache ||= {}
-              @tag_cache[context] = list
+              @tag_cache[context.to_s] = list
 
               # Destroy all taggings
               destroy_tags_for_context context

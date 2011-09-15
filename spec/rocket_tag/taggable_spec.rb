@@ -62,6 +62,9 @@ describe TaggableModel do
     end
 
     it "allow me to do eager loading on tags" do
+      # TODO How to verify that eager loading took place.
+      # Need to read the debug file and do some heuristics
+      # on the log
       TaggableModel.all.each do |m|
         puts m.name
         puts m.skills.inspect
