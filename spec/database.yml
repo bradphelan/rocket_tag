@@ -1,6 +1,6 @@
 sqlite3:
   adapter: sqlite3
-  database: acts_as_taggable_on.sqlite3
+  database: rocket_tag.sqlite3
 
 mysql:
   adapter: mysql2
