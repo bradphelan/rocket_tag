@@ -47,3 +47,7 @@ pkg
 
 # For rubinius:
 #*.rbc
+
+
+spec/debug.log
+*.sqlite3
