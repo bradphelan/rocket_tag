@@ -18,7 +18,7 @@ Jeweler::Tasks.new do |gem|
   gem.homepage = "http://github.com/bradphelan/rocket_tag"
   gem.license = "MIT"
   gem.summary = %Q{A modern fast tagging framework for Rails 3.1+}
-  gem.description = %Q{TODO: longer description of your gem}
+  gem.description = %Q{}
   gem.email = "bradphelan@xtargets.com"
   gem.authors = ["Brad Phelan"]
   # dependencies defined in Gemfile
