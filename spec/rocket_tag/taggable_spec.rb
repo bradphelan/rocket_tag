@@ -59,6 +59,13 @@ describe TaggableModel do
       @t21.skills = ["c", "d"]
 
       @t21.languages = ["german", "jinglish"]
+
+      @t00.save
+      @t01.save
+      @t10.save
+      @t11.save
+      @t20.save
+      @t21.save
     end
 
     it "allow me to do eager loading on tags" do

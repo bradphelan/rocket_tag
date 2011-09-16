@@ -91,6 +91,36 @@ module RocketTag
               :through => :taggings,
               :conditions => [ "taggings.context = ?", context ]
 
+            before_save do
+              @tag_dirty ||= Set.new
+
+              @tag_dirty.each do |context|
+                list = @tag_cache[context.to_s]
+                # Destroy all taggings
+                destroy_tags_for_context context
+
+                # Find existing tags
+                exisiting_tags = Tag.where{name.in(my{list})}
+                exisiting_tag_names = exisiting_tags.map &:name
+
+                # Find missing tags
+                tags_names_to_create = list - exisiting_tag_names 
+
+                # Create missing tags
+                created_tags = tags_names_to_create.map do |tag_name|
+                  Tag.create :name => tag_name
+                end
+
+                # Recreate taggings
+                tags_to_assign = exisiting_tags + created_tags
+
+                tags_to_assign.each do |tag|
+                  tagging = Tagging.create :tag => tag, :taggable => self, :context => context, :tagger => nil
+                  self.taggings << tagging
+                end
+              end
+              @tag_dirty = Set.new
+            end
 
             define_method "cache_tags" do
               unless @tag_cache
@@ -119,29 +149,7 @@ module RocketTag
               cache_tags
 
               @tag_cache[context.to_s] = list
-
-              # Destroy all taggings
-              destroy_tags_for_context context
-
-              # Find existing tags
-              exisiting_tags = Tag.where{name.in(list)}
-              exisiting_tag_names = exisiting_tags.map &:name
-
-              # Find missing tags
-              tags_names_to_create = list - exisiting_tag_names 
-
-              # Create missing tags
-              created_tags = tags_names_to_create.map do |tag_name|
-                Tag.create :name => tag_name
-              end
-
-              # Recreate taggings
-              tags_to_assign = exisiting_tags + created_tags
-
-              tags_to_assign.each do |tag|
-                tagging = Tagging.create :tag => tag, :taggable => self, :context => context, :tagger => nil
-                self.taggings << tagging
-              end
+              @tag_dirty << context
 
                 
             end
