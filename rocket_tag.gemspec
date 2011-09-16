@@ -9,23 +9,33 @@ Gem::Specification.new do |s|
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = [%q{Brad Phelan}]
-  s.date = %q{2011-09-15}
+  s.date = %q{2011-09-16}
   s.description = %q{}
   s.email = %q{bradphelan@xtargets.com}
   s.extra_rdoc_files = [
     "LICENSE.txt",
-    "README.rdoc"
+    "README.md"
   ]
   s.files = [
     ".document",
     ".rspec",
     "Gemfile",
+    "Gemfile.lock",
     "LICENSE.txt",
-    "README.rdoc",
+    "README.md",
     "Rakefile",
     "VERSION",
+    "lib/generators/rocket_tag/migration/migration_generator.rb",
+    "lib/generators/rocket_tag/migration/templates/active_record/migration.rb",
     "lib/rocket_tag.rb",
-    "spec/rocket_tag_spec.rb",
+    "lib/rocket_tag/tag.rb",
+    "lib/rocket_tag/taggable.rb",
+    "lib/rocket_tag/tagging.rb",
+    "rocket_tag.gemspec",
+    "spec/database.yml",
+    "spec/models.rb",
+    "spec/rocket_tag/taggable_spec.rb",
+    "spec/schema.rb",
     "spec/spec_helper.rb"
   ]
   s.homepage = %q{http://github.com/bradphelan/rocket_tag}
@@ -45,6 +55,7 @@ Gem::Specification.new do |s|
       s.add_development_dependency(%q<bundler>, ["~> 1.0.0"])
       s.add_development_dependency(%q<jeweler>, ["~> 1.6.4"])
       s.add_development_dependency(%q<rcov>, [">= 0"])
+      s.add_development_dependency(%q<sqlite3>, [">= 0"])
     else
       s.add_dependency(%q<activerecord>, [">= 3.1.0"])
       s.add_dependency(%q<squeel>, [">= 0"])
@@ -53,6 +64,7 @@ Gem::Specification.new do |s|
       s.add_dependency(%q<bundler>, ["~> 1.0.0"])
       s.add_dependency(%q<jeweler>, ["~> 1.6.4"])
       s.add_dependency(%q<rcov>, [">= 0"])
+      s.add_dependency(%q<sqlite3>, [">= 0"])
     end
   else
     s.add_dependency(%q<activerecord>, [">= 3.1.0"])
@@ -62,6 +74,7 @@ Gem::Specification.new do |s|
     s.add_dependency(%q<bundler>, ["~> 1.0.0"])
     s.add_dependency(%q<jeweler>, ["~> 1.6.4"])
     s.add_dependency(%q<rcov>, [">= 0"])
+    s.add_dependency(%q<sqlite3>, [">= 0"])
   end
 end
 
