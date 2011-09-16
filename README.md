@@ -1,7 +1,7 @@
 Rocket Tag
 ==========
 
-Clean, modern an maintainable, context aware tagging library for rails 3.1 +
+Clean, modern and maintainable, context aware tagging library for rails 3.1 +
 
 Installation
 ------------
