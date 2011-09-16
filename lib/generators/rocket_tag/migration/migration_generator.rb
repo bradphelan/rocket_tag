@@ -1,7 +1,7 @@
 require 'rails/generators'
 require 'rails/generators/migration'
 
-module ActsAsTaggableOn
+module RocketTag
   class MigrationGenerator < Rails::Generators::Base
     include Rails::Generators::Migration
 
