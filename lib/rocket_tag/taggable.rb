@@ -103,6 +103,11 @@ module RocketTag
               :conditions => [ "taggings.context = ?", context ]
 
 
+            validate context do
+              if not send(context).kind_of? Enumerable
+                errors.add context, :invalid
+              end
+            end
             before_save do
               @tag_dirty ||= Set.new
 

@@ -18,7 +18,16 @@ describe TaggableModel do
       @model.reload
       @model.languages.should == ["x", "y"]
     end
+
+    it "validates the model wrt to the context" do
+      @model.languages = 100
+      @model.save.should == false
+      pp @model.errors.messages
+
+
+    end
   end
+
   describe "#reload" do
     it "resets the tags caches to what is in the database" do
       @model.languages = ["a", "b", "c"]
