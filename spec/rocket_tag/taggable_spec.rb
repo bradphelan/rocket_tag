@@ -6,6 +6,16 @@ describe TaggableModel do
     @model = TaggableModel.create
   end
 
+  describe "parsing" do
+      it "converts strings to arrays using ruby core lib CSV" do
+          m = TaggableModel.new :skills => %q%hello, is it me, you are looking for, cat%
+          m.skills.should == ["hello", "is it me", "you are looking for", "cat"]
+
+          m = TaggableModel.new :skills => %q%hello, "is it me, you are looking for", cat%
+          m.skills.should == ["hello", "is it me, you are looking for", "cat"]
+      end
+  end
+
   describe "#save" do
     it "persists the tags cache to the database" do
       @model.languages = ["a", "b", "c"]
@@ -22,9 +32,6 @@ describe TaggableModel do
     it "validates the model wrt to the context" do
       @model.languages = 100
       @model.save.should == false
-      pp @model.errors.messages
-
-
     end
   end
 

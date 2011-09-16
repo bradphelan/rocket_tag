@@ -12,6 +12,24 @@ module RocketTag
       attr_writer :contexts
       attr_reader :klass
 
+      def self.parse_tags list
+        require 'csv'
+        if list.kind_of? String
+          # for some reason CSV parser cannot handle
+          #     
+          #     hello, "foo"
+          #
+          # but must be
+          #
+          #     hello,"foo"
+
+          list = list.gsub /,\s+"/, ',"'
+          list = list.parse_csv.map &:strip
+        else
+          list
+        end
+      end
+
       def initialize klass
         @klass = klass
         @contexts = Set.new
@@ -168,6 +186,7 @@ module RocketTag
 
 
             define_method "#{context}=" do |list|
+              list = Manager.parse_tags list
 
               # Ensure the tags are loaded
               cache_tags
