@@ -44,22 +44,33 @@ module RocketTag
         @rocket_tag ||= RocketTag::Taggable::Manager.new(self)
       end
 
+      def with_tag_context context
+        if context
+          where{taggings.context == my{context} }
+        else
+          where{}
+        end
+      end
+
       def tagged_with tags_list, options = {}
 
         on = options.delete :on
         all = options.delete :all
 
         q = if all
-          joins{tags}.
-            where{tags.name.in(my{tags_list})}.
-            group{~id}.
-            having{count(~id)==my{tags_list.length}}
+              joins{tags}.where{
+                id.in( 
+                    my{self}.
+                      select{id}.
+                      joins{tags}.
+                      where{tags.name.in(my{tags_list})}.
+                      group{~id}.
+                      having{count(~id)==my{tags_list.length}}.
+                      with_tag_context(my{on})
+                )
+              }
         else
-          joins{tags}.where{tags.name.in(my{tags_list})}
-        end
-       
-        if on
-          q = q.where{taggings.context == my{on.to_s} }
+          joins{tags}.where{tags.name.in(my{tags_list})}.with_tag_context(on)
         end
 
         q.select{"distinct #{my{table_name}}.*"}
@@ -118,7 +129,7 @@ module RocketTag
                 tags_to_assign = exisiting_tags + created_tags
 
                 tags_to_assign.each do |tag|
-                  tagging = Tagging.create :tag => tag, :taggable => self, :context => context, :tagger => nil
+                  tagging = Tagging.new :tag => tag, :taggable => self, :context => context, :tagger => nil
                   self.taggings << tagging
                 end
               end
@@ -147,7 +158,7 @@ module RocketTag
             # Return an array of RocketTag::Tags for the context
             define_method "#{context}" do
               cache_tags
-              read_attribute(context) || []
+              r = read_attribute(context) || []
             end
 
 
@@ -156,7 +167,8 @@ module RocketTag
               # Ensure the tags are loaded
               cache_tags
               write_attribute(context, list)
-              @tag_dirty << context
+
+              (@tag_dirty ||= Set.new) << context
 
                 
             end
