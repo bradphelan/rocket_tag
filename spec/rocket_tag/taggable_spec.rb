@@ -6,14 +6,38 @@ describe TaggableModel do
     @model = TaggableModel.create
   end
 
-  it "allows assignment of tags" do
-    @model.languages = ["a", "b", "c"]
-    @model.reload
-    @model.languages.should == ["a", "b", "c"]
+  describe "#save" do
+    it "persists the tags cache to the database" do
+      @model.languages = ["a", "b", "c"]
+      @model.save
+      @model.reload
+      @model.languages.should == ["a", "b", "c"]
 
-    @model.languages = ["x", "y"]
-    @model.reload
-    @model.languages.should == ["x", "y"]
+      @model.languages = ["x", "y"]
+      @model.save
+      @model.reload
+      @model.languages.should == ["x", "y"]
+    end
+  end
+  describe "#reload" do
+    it "resets the tags caches to what is in the database" do
+      @model.languages = ["a", "b", "c"]
+      @model.reload
+      @model.languages.should == []
+
+      @model.languages = ["x", "y"]
+      @model.reload
+      @model.languages.should == []
+
+      @model.needs = ["a"]
+      @model.save
+      @model.reload
+      @model.needs.should == ["a"]
+      @model.needs = ["b"]
+      @model.needs.should == ["b"]
+      @model.reload
+      @model.needs.should == ["a"]
+    end
   end
 
 
@@ -35,6 +59,7 @@ describe TaggableModel do
     TaggableModel.joins{skills_tags}.where{skills_tags.name == "foo"}.to_sql.should == sql
   end
 
+
   describe "querying tags" do
 
     before :each do
@@ -49,16 +74,21 @@ describe TaggableModel do
       @t20 = TaggableModel.create :name => "20"
       @t21 = TaggableModel.create :name => "21"
 
-      @t00.skills = ["a", "b"]
-      @t01.skills = ["a", "b"]
+      @t00.skills    =  [ "a"      , "b"]
+      @t00.languages =  [ "german" , "french"]
 
-      @t10.skills = ["a", "c"]
-      @t11.skills = ["a", "c"]
+      @t01.skills    =  [ "a"      , "b"]
+      @t01.languages =  [ "german" , "italian"]
 
-      @t20.skills = ["c", "d"]
-      @t21.skills = ["c", "d"]
+      @t10.skills    =  [ "a"      , "c"]
 
-      @t21.languages = ["german", "jinglish"]
+      @t11.skills    =  [ "a"      , "c"]
+
+      @t20.skills    =  [ "c"      , "d"]
+
+      @t21.skills    =  [ "c"      , "d"]
+
+      @t21.languages =  [ "german" , "jinglish"]
 
       @t00.save
       @t01.save
@@ -69,39 +99,58 @@ describe TaggableModel do
     end
 
     it "allow me to do eager loading on tags" do
-      # TODO How to verify that eager loading took place.
-      # Need to read the debug file and do some heuristics
-      # on the log
-      TaggableModel.all.each do |m|
-        puts m.name
-        puts m.skills.inspect
-        puts m.languages.inspect
-        puts m.needs.inspect
-        puts "--"
+      pending "Need to figure out how to verify eager loading other than manually inspect the log file"
+    end
+
+    describe "#tagged_with" do
+      describe ":all => true" do
+        it "should return records where *all* tags match on any context" do
+          q0 = TaggableModel.tagged_with(["a", "german"], :all => true ).all
+          q0.length.should == 2
+          q0.should include @t00
+          q0.should include @t01
+        end
       end
-    end
+      describe ":all => false" do
+        it "should return records where *any* tags match on any context" do
+          q0 = TaggableModel.tagged_with(["a", "german"] ).all
+          q0.length.should == 5
+          q0.should include @t00
+          q0.should include @t01
+          q0.should include @t10
+          q0.should include @t11
+          q0.should include @t21
 
-    it "allows to search on tag via active relation" do
+          q0.should_not include @t20 # as it has neither "a" nor "german" tagged
+                                     # on any context
+        end
+      end
 
+      describe ":all => false, :on => context" do
+        it "should return records where *any* tags match on the specific context" do
+          q0 = TaggableModel.tagged_with(["a", "german"], :on => :skills ).all
+          q0.length.should == 4
+          q0.should include @t00
+          q0.should include @t01
+          q0.should include @t10
+          q0.should include @t11
 
-      q0 = TaggableModel.tagged_with(["a", "b"], :all => true, :on => :skills ).all
-      q0.length.should == 2
-      q0.should include @t00
-      q0.should include @t01
+          q0.should_not include @t21
+          q0.should_not include @t20
+        end
+      end
 
-      q0 = TaggableModel.tagged_with(["a", "b"], :on => :skills ).all
-      q0.length.should == 4
-      q0.should include @t00
-      q0.should include @t01
-      q0.should include @t10
-      q0.should include @t11
+      describe ":all => true, :on => context" do
+        it "should return records where *all* tags match on the specific context" do
+          q0 = TaggableModel.tagged_with(["a", "german"], :on => :skills, :all => true ).all
+          q0.length.should == 0
 
-      q0 = TaggableModel.tagged_with(["a", "b"], :on => :languages ).all
-      q0.length.should == 0
-
-    end
-
-    it "should eager load the tags" do
+          q0 = TaggableModel.tagged_with(["a", "b"], :on => :skills, :all => true ).all
+          q0.length.should == 2
+          q0.should include @t00
+          q0.should include @t01
+        end
+      end
     end
   end
 end

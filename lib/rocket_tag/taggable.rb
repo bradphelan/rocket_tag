@@ -14,7 +14,7 @@ module RocketTag
 
       def initialize klass
         @klass = klass
-        @contexts = []
+        @contexts = Set.new
         setup_relations
       end
 
@@ -72,7 +72,7 @@ module RocketTag
           contexts = [:tag]
         end
 
-        rocket_tag.contexts << contexts
+        rocket_tag.contexts += contexts
 
         contexts.each do |context|
           class_eval do
@@ -91,11 +91,14 @@ module RocketTag
               :through => :taggings,
               :conditions => [ "taggings.context = ?", context ]
 
+
             before_save do
               @tag_dirty ||= Set.new
 
               @tag_dirty.each do |context|
-                list = @tag_cache[context.to_s]
+                # Get the current tags for this context
+                list = send(context)
+
                 # Destroy all taggings
                 destroy_tags_for_context context
 
@@ -122,24 +125,29 @@ module RocketTag
               @tag_dirty = Set.new
             end
 
-            define_method "cache_tags" do
-              unless @tag_cache
-                @tag_cache ||= send("taggings").group_by{|f| f.context }
-                @tag_cache.each do |k,v|
-                  @tag_cache[k] = v.map{|t|t.tag.name}
-                end
+            def reload
+              super
+              self.class.rocket_tag.contexts.each do |context|
+                write_attribute context, []
               end
-              @tag_cache
+              @tags_cached = false
+              cache_tags
+            end
+
+            define_method "cache_tags" do
+              unless @tags_cached
+                tags_by_context ||= send("taggings").group_by{|f| f.context }
+                tags_by_context.each do |context,v|
+                  write_attribute context, v.map{|t| t.tag.name}
+                end
+                @tags_cached = true
+              end
             end
 
             # Return an array of RocketTag::Tags for the context
             define_method "#{context}" do
               cache_tags
-              if @tag_cache[context.to_s]
-                @tag_cache[context.to_s]
-              else
-                []
-              end
+              read_attribute(context) || []
             end
 
 
@@ -147,8 +155,7 @@ module RocketTag
 
               # Ensure the tags are loaded
               cache_tags
-
-              @tag_cache[context.to_s] = list
+              write_attribute(context, list)
               @tag_dirty << context
 
                 
