@@ -62,37 +62,55 @@ module RocketTag
         @rocket_tag ||= RocketTag::Taggable::Manager.new(self)
       end
 
-      def with_tag_context context
+      def _with_tag_context context
         if context
           where{taggings.context == my{context} }
         else
-          where{}
+          where{ }
         end
       end
 
-      def tagged_with tags_list, options = {}
+      def _with_all condition, tags_list
+          if condition
+              group{~id}.
+              having{count(~id)==my{tags_list.length}}
+          else
+              where{}
+          end
+      end
 
+      # Generates a sifter or a where clause depending on options.
+      # The sifter generates a subselect with the body of the
+      # clause wrapped up so that it can be used as a condition
+      # within another squeel statement. 
+      #
+      # Query optimization is left up to the SQL engine.
+      def tagged_with_sifter tags_list, options = {}
         on = options.delete :on
         all = options.delete :all
 
-        q = if all
-              joins{tags}.where{
-                id.in( 
-                    my{self}.
-                      select{id}.
-                      joins{tags}.
-                      where{tags.name.in(my{tags_list})}.
-                      group{~id}.
-                      having{count(~id)==my{tags_list.length}}.
-                      with_tag_context(my{on})
-                )
-              }
-        else
-          joins{tags}.where{tags.name.in(my{tags_list})}.with_tag_context(on)
-        end
+        proc do |&block|
+            if options.delete :where
+              where &block
+            else
+              squeel &block
+            end
+        end.call {
+          id.in( 
+              my{self}.
+                select{id}.
+                joins{tags}.
+                where{ tags.name.in(my{tags_list})}.
+                _with_tag_context(my{on}).
+                _with_all(my{all}, my{tags_list})
+          )
+        }
 
-        q.select{"distinct #{my{table_name}}.*"}
+      end
 
+      def tagged_with tags_list, options = {}
+        options[:where] = true
+        tagged_with_sifter(tags_list, options)
       end
 
       def attr_taggable *contexts

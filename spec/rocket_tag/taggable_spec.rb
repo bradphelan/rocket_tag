@@ -56,55 +56,6 @@ describe TaggableModel do
     end
   end
 
-
-  it "allows me to get funky with Squeel and ActiveRelation" do
-
-    sql = <<-EOF.gsub(/\s+/, ' ').strip
-      SELECT "taggable_models".* 
-      FROM "taggable_models" 
-      INNER JOIN "taggings" 
-        ON "taggings"."taggable_id" = "taggable_models"."id" 
-        AND "taggings"."taggable_type" = 'TaggableModel' 
-      INNER JOIN "tags" 
-        ON "tags"."id" = "taggings"."tag_id" 
-        AND taggings.context = 'skills' 
-      WHERE 
-        "tags"."name" = 'foo'
-    EOF
-
-    TaggableModel.joins{skills_tags}.where{skills_tags.name == "foo"}.to_sql.should == sql
-
-    sql = <<-EOF.gsub(/\s+/, ' ').strip
-        SELECT distinct taggable_models.* 
-        FROM "taggable_models" 
-        INNER JOIN "taggings" 
-        ON 
-          "taggings"."taggable_id" = "taggable_models"."id" 
-        AND 
-          "taggings"."taggable_type" = 'TaggableModel' 
-        INNER JOIN "tags" 
-        ON 
-          "tags"."id" = "taggings"."tag_id" 
-        WHERE 
-          "taggable_models"."id" IN 
-            (SELECT "taggable_models"."id" 
-              FROM "taggable_models" 
-              INNER JOIN "taggings" 
-              ON "taggings"."taggable_id" = "taggable_models"."id" 
-              AND "taggings"."taggable_type" = 'TaggableModel' 
-              INNER JOIN "tags" 
-              ON "tags"."id" = "taggings"."tag_id" WHERE "tags"."name" 
-              IN ('a', 'b') 
-              GROUP BY "taggable_models"."id" 
-              HAVING count("taggable_models"."id") = 2) 
-          AND 
-            (created_at > '2011-09-16 05:41')
-       EOF
-    
-    TaggableModel.tagged_with(["a", "b"], :all =>true).where(["created_at > ?", "2011-09-16 05:41"]).to_sql.should == sql
-  end
-
-
   describe "combining with active relation" do
     before :each do
       TaggableModel.create :name => "test 0", :needs => %w[x y z]
