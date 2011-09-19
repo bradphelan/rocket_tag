@@ -98,7 +98,7 @@ module RocketTag
         end.call {
           id.in( 
               my{self}.
-                select{id}.
+                select{distinct(id)}.
                 joins{tags}.
                 where{ tags.name.in(my{tags_list})}.
                 _with_tag_context(my{on}).
