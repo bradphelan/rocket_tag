@@ -7,13 +7,13 @@ describe TaggableModel do
   end
 
   describe "parsing" do
-      it "converts strings to arrays using ruby core lib CSV" do
-          m = TaggableModel.new :skills => %q%hello, is it me, you are looking for, cat%
-          m.skills.should == ["hello", "is it me", "you are looking for", "cat"]
+    it "converts strings to arrays using ruby core lib CSV" do
+      m = TaggableModel.new :skills => %q%hello, is it me, you are looking for, cat%
+      m.skills.should == ["hello", "is it me", "you are looking for", "cat"]
 
-          m = TaggableModel.new :skills => %q%hello, "is it me, you are looking for", cat%
-          m.skills.should == ["hello", "is it me, you are looking for", "cat"]
-      end
+      m = TaggableModel.new :skills => %q%hello, "is it me, you are looking for", cat%
+      m.skills.should == ["hello", "is it me, you are looking for", "cat"]
+    end
   end
 
   describe "#save" do
@@ -93,10 +93,10 @@ describe TaggableModel do
       @t20 = TaggableModel.create :name => "20", :foo => "A"
       @t21 = TaggableModel.create :name => "21", :foo => "B"
 
-      @t00.skills    =  [ "a"      , "b"]
+      @t00.skills    =  [ "a"      , "b",  "x"]
       @t00.languages =  [ "german" , "french"]
 
-      @t01.skills    =  [ "a"      , "b"]
+      @t01.skills    =  [ "a"      , "b", "y"]
       @t01.languages =  [ "german" , "italian"]
 
       @t10.skills    =  [ "a"      , "c"]
@@ -141,7 +141,7 @@ describe TaggableModel do
           q0.should include @t21
 
           q0.should_not include @t20 # as it has neither "a" nor "german" tagged
-                                     # on any context
+          # on any context
         end
       end
 
@@ -175,6 +175,36 @@ describe TaggableModel do
           q0.should_not include @t01
         end
       end
+
+      describe "#tagged_with_sifter" do
+        it "should be the work horse of #tagged_with but returns a sifter that can be composed into other queries" do
+          TaggableModel.where do
+            TaggableModel.tagged_with_sifter(["a", "b"]) & TaggableModel.tagged_with_sifter(["c"])
+          end.count.should == 2
+
+          TaggableModel.where do
+            TaggableModel.tagged_with_sifter(["a", "b"])
+          end.count.should == 4
+        end
+
+        it "should have the options from #tagged_with passed through" do
+            tags_list = ["a", "b"]
+            options = {:x=>10, :y=>20}
+            TaggableModel.should_receive(:tagged_with_sifter).with(tags_list, options)
+            TaggableModel.tagged_with(tags_list, options)
+        end
+      end
+
+      describe "option :min" do
+        it "should return records where the number of matching tags >= :min" do
+          TaggableModel.tagged_with(["a", "b", "x"], :on => :skills).count.should == 4
+
+          TaggableModel.tagged_with(["a", "b", "x"], :on => :skills, :min => 1).count.should == 4
+          TaggableModel.tagged_with(["a", "b", "x"], :on => :skills, :min => 2).count.should == 2
+          TaggableModel.tagged_with(["a", "b", "x"], :on => :skills, :min => 3).count.should == 1
+        end
+      end
     end
   end
 end
+

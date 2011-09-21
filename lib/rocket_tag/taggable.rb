@@ -70,13 +70,13 @@ module RocketTag
         end
       end
 
-      def _with_all condition, tags_list
-          if condition
-              group{~id}.
-              having{count(~id)==my{tags_list.length}}
-          else
-              where{}
-          end
+      def _with_min min, tags_list
+        if min and min > 1
+          group{~id}.
+          having{count(~id)>=my{min}}
+        else
+          where{}
+        end
       end
 
       # Generates a sifter or a where clause depending on options.
@@ -88,25 +88,35 @@ module RocketTag
       def tagged_with_sifter tags_list, options = {}
         on = options.delete :on
         all = options.delete :all
+        min = options.delete(:min)
+        if all
+          min = tags_list.length
+        end
 
-        proc do |&block|
+        lambda do |&block|
             if options.delete :where
               where &block
             else
               squeel &block
             end
-        end.call {
-          id.in( 
-              my{self}.
-                select{distinct(id)}.
-                joins{tags}.
-                where{ tags.name.in(my{tags_list})}.
-                _with_tag_context(my{on}).
-                _with_all(my{all}, my{tags_list})
+        end.call do
+          id.in(
+            my{self}.
+              select{id}.
+              joins{tags}.
+              where{tags.name.in(my{tags_list})}.
+              _with_tag_context(on).
+              _with_min(min, tags_list)
           )
-        }
+        end
 
       end
+
+      # We need to overide the default count
+      # and do a sub select as we are using gr
+      def count
+      end
+        
 
       def tagged_with tags_list, options = {}
         options[:where] = true
