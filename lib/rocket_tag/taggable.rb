@@ -43,10 +43,6 @@ module RocketTag
       end
     end
 
-    def tags_for_context context
-      tags.where{taggings.context==my{context}}
-    end
-
     def taggings_for_context context
       taggings.where{taggings.context==my{context}}
     end
@@ -83,6 +79,20 @@ module RocketTag
       def read_context context
         @contexts ||= {}
         @contexts[context.to_sym] || []
+      end
+    end
+
+    module InstanceMethods
+      def tagged_similar options = {}
+        context = options.delete :on
+        raise Exception.new("#{context} is not a valid tag context for #{self.class}") unless self.class.rocket_tag.contexts.include? context
+        if context
+          contexts = [context]
+        else
+          contexts = self.class.rocket_tag.contexts
+        end
+        tags = send context.to_sym
+        self.class.tagged_with(tags, options).where{id != my{id}}
       end
     end
 
@@ -142,10 +152,53 @@ module RocketTag
 
       end
 
-      # We need to overide the default count
-      # and do a sub select as we are using gr
-      def count
+      # Generates a query that provides the matches
+      # along with an extra column :count_tags.
+      #
+      # Be careful using this as it uses SQL group by
+      # having without shielding with a sub select
+      # so when chained with any other aggregate functions
+      #
+      # such as ActiveRecord::Calculations::ClassMethods::count
+      #
+      # http://ar.rubyonrails.org/classes/ActiveRecord/Calculations/ClassMethods.html
+      #
+      # you may not get the result you expect. However being provided
+      # the column count_tags allows you to do further filtering
+      # based on this score
+      def tagged_with_scored tags_list, options = {}
+        on = options.delete :on
+        all = options.delete :all
+        min = options.delete(:min)
+        if all
+          min = tags_list.length
+        end
+
+        select{count(~id).as(count_tags)}
+          .select("#{self.table_name}.*").
+          joins{tags}.
+          where{tags.name.in(my{tags_list})}.
+          _with_tag_context(on).
+          _with_min(min, tags_list).
+          order("count_tags DESC")
+
       end
+
+      def related_tags_for(context, klass, options = {})
+        tags_to_find = tags_on(context).collect { |t| t.name }
+
+        exclude_self = "#{klass.table_name}.#{klass.primary_key} != #{id} AND" if self.class == klass
+
+        group_columns = ActsAsTaggableOn::Tag.using_postgresql? ? grouped_column_names_for(klass) : "#{klass.table_name}.#{klass.primary_key}"
+
+        klass.scoped({ :select     => "#{klass.table_name}.*, COUNT(tags.id) AS count",
+                       :from       => "#{klass.table_name}, tags, taggings",
+                       :conditions => ["#{exclude_self} #{klass.table_name}.#{klass.primary_key} = taggings.taggable_id AND taggings.taggable_type = '#{klass.to_s}' AND taggings.tag_id = tags.id AND tags.name IN (?)", tags_to_find],
+                       :group      => group_columns,
+                       :order      => "count DESC" }.update(options))
+      end
+
+        
 
 
       def tagged_with tags_list, options = {}

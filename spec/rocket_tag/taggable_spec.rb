@@ -121,6 +121,43 @@ describe TaggableModel do
       pending "Need to figure out how to verify eager loading other than manually inspect the log file"
     end
 
+    describe "#tagged_with_scored" do
+        it "should work" do
+
+          #<TaggableModel id: 2, name: "00", type: nil, foo: "A"> - 3 - german, french, a, b, x
+          #<TaggableModel id: 3, name: "01", type: nil, foo: "B"> - 3 - german, italian, a, b, y
+          #<TaggableModel id: 4, name: "10", type: nil, foo: "A"> - 1 - a, c
+          #<TaggableModel id: 5, name: "11", type: nil, foo: "B"> - 1 - a, c
+          #<TaggableModel id: 7, name: "21", type: nil, foo: "B"> - 1 - german, jinglish, c, d
+          
+#           r = TaggableModel.tagged_with_scored(["a", "b", "german"]).all.each do |m|
+#             puts "#{m.inspect} - #{m.count_tags} - #{m.tags.map(&:name).join ', '}"
+#           end
+
+          r = TaggableModel.tagged_with_scored(["a", "b", "german"]).all
+          r.find{|i|i.name == "00"}.count_tags.should == 3
+          r.find{|i|i.name == "01"}.count_tags.should == 3
+          r.find{|i|i.name == "10"}.count_tags.should == 1
+          r.find{|i|i.name == "11"}.count_tags.should == 1
+          r.find{|i|i.name == "21"}.count_tags.should == 1
+
+          r = TaggableModel.tagged_with_scored(["a", "b", "german"], :on => :skills).all
+          r.find{|i|i.name == "00"}.count_tags.should == 2
+          r.find{|i|i.name == "01"}.count_tags.should == 2
+          r.find{|i|i.name == "10"}.count_tags.should == 1
+          r.find{|i|i.name == "11"}.count_tags.should == 1
+          r.find{|i|i.name == "21"}.should be_nil
+
+          puts TaggableModel.tagged_with_scored(["a", "b", "german"], :on => :skills).to_sql
+        end
+    end
+
+    describe "#tagged_similar" do
+      it "should work" do
+        @t00.tagged_similar(:on => :skills).count.should == 3
+      end
+    end
+
     describe "#tagged_with" do
       describe ":all => true" do
         it "should return records where *all* tags match on any context" do
