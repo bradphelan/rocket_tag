@@ -44,6 +44,10 @@ Usage
 
 	# Match all tags on a specific context
 	TaggableModel.tagged_with ["math", "kiting"], :all => true, :on => "skills"
+	
+	# Match a miniumum number of tags
+	TaggableModel.tagged_with ["math", "kiting", "coding", "sleeping"], :min => 2, :on => "skills"
+	
 
 	# Mix with active relation 
 	TaggableModel.tagged_with(["forking", "kiting"]).where( ["created_at > ?", Time.zone.now.ago(5.hours)])  
