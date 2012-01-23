@@ -122,7 +122,7 @@ describe TaggableModel do
     end
 
     describe "#tagged_with_scored" do
-        it "should work" do
+        it "should count the number of matched tags" do
 
           #<TaggableModel id: 2, name: "00", type: nil, foo: "A"> - 3 - german, french, a, b, x
           #<TaggableModel id: 3, name: "01", type: nil, foo: "B"> - 3 - german, italian, a, b, y
@@ -210,6 +210,29 @@ describe TaggableModel do
           q0.length.should == 1
           q0.should include @t00
           q0.should_not include @t01
+        end
+      end
+
+      describe "Experiments with AREL" do
+        it "should" do
+          u_t = Arel::Table::new :users
+          l_t = Arel::Table::new :logs
+	
+          counts = l_t.
+            group(l_t[:user_id]).
+            project(
+              l_t[:user_id].as("user_id"), 
+              l_t[:user_id].count.as("count_all")
+            ).as "foo"
+          
+          users = u_t.
+            join(counts).
+            on(u_t[:id].
+            eq(counts[:user_id])).
+            project("*")
+
+          puts users.to_sql
+          
         end
       end
 
