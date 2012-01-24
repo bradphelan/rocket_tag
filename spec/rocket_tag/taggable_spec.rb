@@ -121,7 +121,7 @@ describe TaggableModel do
       pending "Need to figure out how to verify eager loading other than manually inspect the log file"
     end
 
-    describe "#tagged_with_scored" do
+    describe "#tagged_with" do
         it "should count the number of matched tags" do
 
           #<TaggableModel id: 2, name: "00", type: nil, foo: "A"> - 3 - german, french, a, b, x
@@ -130,25 +130,37 @@ describe TaggableModel do
           #<TaggableModel id: 5, name: "11", type: nil, foo: "B"> - 1 - a, c
           #<TaggableModel id: 7, name: "21", type: nil, foo: "B"> - 1 - german, jinglish, c, d
           
-#           r = TaggableModel.tagged_with_scored(["a", "b", "german"]).all.each do |m|
-#             puts "#{m.inspect} - #{m.count_tags} - #{m.tags.map(&:name).join ', '}"
+#           r = TaggableModel.tagged_with(["a", "b", "german"]).all.each do |m|
+#             puts "#{m.inspect} - #{m.tags_count} - #{m.tags.map(&:name).join ', '}"
 #           end
 
-          r = TaggableModel.tagged_with_scored(["a", "b", "german"]).all
-          r.find{|i|i.name == "00"}.count_tags.should == 3
-          r.find{|i|i.name == "01"}.count_tags.should == 3
-          r.find{|i|i.name == "10"}.count_tags.should == 1
-          r.find{|i|i.name == "11"}.count_tags.should == 1
-          r.find{|i|i.name == "21"}.count_tags.should == 1
+          r = TaggableModel.tagged_with(["a", "b", "german"]).all
+          r.find{|i|i.name == "00"}.tags_count.should == 3
+          r.find{|i|i.name == "01"}.tags_count.should == 3
+          r.find{|i|i.name == "10"}.tags_count.should == 1
+          r.find{|i|i.name == "11"}.tags_count.should == 1
+          r.find{|i|i.name == "21"}.tags_count.should == 1
 
-          r = TaggableModel.tagged_with_scored(["a", "b", "german"], :on => :skills).all
-          r.find{|i|i.name == "00"}.count_tags.should == 2
-          r.find{|i|i.name == "01"}.count_tags.should == 2
-          r.find{|i|i.name == "10"}.count_tags.should == 1
-          r.find{|i|i.name == "11"}.count_tags.should == 1
+          # The 'group by' operation to generate the count tags should
+          # be opaque to downstream operations. Thus count should
+          # return the correct number of records
+          r = TaggableModel.tagged_with(["a", "b", "german"]).count.should == 5
+
+          # It should be possible to cascade active relation queries on
+          # the 
+          r = TaggableModel.tagged_with(["a", "b", "german"]).
+            where{tags_count>2}.count.should == 2
+
+          # The min option is a shortcut for a query on tags_count
+          r = TaggableModel.tagged_with(["a", "b", "german"], :min => 2).count.should == 2
+
+          r = TaggableModel.tagged_with(["a", "b", "german"], :on => :skills).all
+          r.find{|i|i.name == "00"}.tags_count.should == 2
+          r.find{|i|i.name == "01"}.tags_count.should == 2
+          r.find{|i|i.name == "10"}.tags_count.should == 1
+          r.find{|i|i.name == "11"}.tags_count.should == 1
           r.find{|i|i.name == "21"}.should be_nil
 
-          puts TaggableModel.tagged_with_scored(["a", "b", "german"], :on => :skills).to_sql
         end
     end
 
@@ -214,6 +226,19 @@ describe TaggableModel do
       end
 
       describe "Experiments with AREL" do
+        it "foo" do
+          u_t = Arel::Table::new :users
+          l_t = Arel::Table::new :logs
+
+          counts = l_t.
+            group(l_t[:user_id]).
+            project(
+              l_t[:user_id].as("user_id"), 
+              l_t[:user_id].count.as("count_all")
+          ).as "foo"
+
+          puts TaggableModel.joins("JOIN " + counts.to_sql ).to_sql
+        end
         it "should" do
           u_t = Arel::Table::new :users
           l_t = Arel::Table::new :logs
@@ -229,7 +254,7 @@ describe TaggableModel do
             join(counts).
             on(u_t[:id].
             eq(counts[:user_id])).
-            project("*")
+            project("*").project(counts[:count_all])
 
           puts users.to_sql
           
@@ -242,28 +267,18 @@ describe TaggableModel do
             TaggableModel.tagged_with_sifter(["a", "b"]) & TaggableModel.tagged_with_sifter(["c"])
           end.count.should == 2
 
+          x = TaggableModel.where do
+            TaggableModel.tagged_with_sifter(["a", "b"]) & TaggableModel.tagged_with_sifter(["c"])
+          end.to_sql
+          puts x
+
           TaggableModel.where do
             TaggableModel.tagged_with_sifter(["a", "b"])
           end.count.should == 4
         end
 
-        it "should have the options from #tagged_with passed through" do
-            tags_list = ["a", "b"]
-            options = {:x=>10, :y=>20}
-            TaggableModel.should_receive(:tagged_with_sifter).with(tags_list, options)
-            TaggableModel.tagged_with(tags_list, options)
-        end
       end
 
-      describe "option :min" do
-        it "should return records where the number of matching tags >= :min" do
-          TaggableModel.tagged_with(["a", "b", "x"], :on => :skills).count.should == 4
-
-          TaggableModel.tagged_with(["a", "b", "x"], :on => :skills, :min => 1).count.should == 4
-          TaggableModel.tagged_with(["a", "b", "x"], :on => :skills, :min => 2).count.should == 2
-          TaggableModel.tagged_with(["a", "b", "x"], :on => :skills, :min => 3).count.should == 1
-        end
-      end
     end
   end
 end

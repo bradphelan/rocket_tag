@@ -110,14 +110,6 @@ module RocketTag
         end
       end
 
-      def _with_min min, tags_list
-        if min and min > 1
-          group{~id}.
-            having{count(~id)>=my{min}}
-        else
-          where{}
-        end
-      end
 
       # Generates a sifter or a where clause depending on options.
       # The sifter generates a subselect with the body of the
@@ -126,84 +118,43 @@ module RocketTag
       #
       # Query optimization is left up to the SQL engine.
       def tagged_with_sifter tags_list, options = {}
-        on = options.delete :on
-        all = options.delete :all
-        min = options.delete(:min)
-        if all
-          min = tags_list.length
-        end
-
-        lambda do |&block|
-        if options.delete :where
-          where &block
-        else
-          squeel &block
-        end
-        end.call do
-          id.in(
-            my{self}.
-            select{id}.
-            joins{tags}.
-            where{tags.name.in(my{tags_list})}.
-            _with_tag_context(on).
-            _with_min(min, tags_list)
-          )
-        end
-
+        options[:sifter] = true
+        tagged_with tags_list, options
       end
 
       # Generates a query that provides the matches
-      # along with an extra column :count_tags.
-      #
-      # Be careful using this as it uses SQL group by
-      # having without shielding with a sub select
-      # so when chained with any other aggregate functions
-      #
-      # such as ActiveRecord::Calculations::ClassMethods::count
-      #
-      # http://ar.rubyonrails.org/classes/ActiveRecord/Calculations/ClassMethods.html
-      #
-      # you may not get the result you expect. However being provided
-      # the column count_tags allows you to do further filtering
-      # based on this score
-      def tagged_with_scored tags_list, options = {}
+      # along with an extra column :tags_count.
+      def tagged_with tags_list, options = {}
         on = options.delete :on
-        all = options.delete :all
-        min = options.delete(:min)
-        if all
-          min = tags_list.length
+
+        inner = select{count(~id).as(tags_count)}
+            .select("#{self.table_name}.*").
+            joins{tags}.
+            where{tags.name.in(my{tags_list})}.
+            _with_tag_context(on).
+            group{~id}
+
+        # Wrap the inner query with an outer query to shield
+        # the group and aggregate clauses from downstream
+        # queries
+        r = from("(#{inner.to_sql}) #{table_name}")
+
+        if options.delete :all
+          r = r.where{tags_count==my{tags_list.length}}
         end
 
-        select{count(~id).as(count_tags)}
-          .select("#{self.table_name}.*").
-          joins{tags}.
-          where{tags.name.in(my{tags_list})}.
-          _with_tag_context(on).
-          _with_min(min, tags_list).
-          order("count_tags DESC")
+        if min = options.delete(:min)
+          r = r.where{tags_count>=my{min}}
+        end
 
-      end
+        if options.delete :sifter
+          squeel do
+            id.in(r.select{"id"})
+          end
+        else
+          r.select("*")
+        end
 
-      def related_tags_for(context, klass, options = {})
-        tags_to_find = tags_on(context).collect { |t| t.name }
-
-        exclude_self = "#{klass.table_name}.#{klass.primary_key} != #{id} AND" if self.class == klass
-
-        group_columns = ActsAsTaggableOn::Tag.using_postgresql? ? grouped_column_names_for(klass) : "#{klass.table_name}.#{klass.primary_key}"
-
-        klass.scoped({ :select     => "#{klass.table_name}.*, COUNT(tags.id) AS count",
-                       :from       => "#{klass.table_name}, tags, taggings",
-                       :conditions => ["#{exclude_self} #{klass.table_name}.#{klass.primary_key} = taggings.taggable_id AND taggings.taggable_type = '#{klass.to_s}' AND taggings.tag_id = tags.id AND tags.name IN (?)", tags_to_find],
-                       :group      => group_columns,
-                       :order      => "count DESC" }.update(options))
-      end
-
-        
-
-
-      def tagged_with tags_list, options = {}
-        options[:where] = true
-        tagged_with_sifter(tags_list, options)
       end
 
       def setup_for_rocket_tag
