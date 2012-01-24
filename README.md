@@ -48,6 +48,8 @@ Usage
 	# Match a miniumum number of tags
 	TaggableModel.tagged_with ["math", "kiting", "coding", "sleeping"], :min => 2, :on => "skills"
 	
+	# Take advantage of the tags_count synthetic column returned with every query
+	TaggableModel.tagged_with(["math", "kiting", "coding", "sleeping"], :on => "skills").where{tags_count>=2}	
 
 	# Mix with active relation 
 	TaggableModel.tagged_with(["forking", "kiting"]).where( ["created_at > ?", Time.zone.now.ago(5.hours)])  
