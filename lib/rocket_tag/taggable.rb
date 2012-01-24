@@ -4,6 +4,7 @@ module RocketTag
   module Taggable
     def self.included(base)
       base.extend ClassMethods
+      base.send :include, InstanceMethods
     end
 
     class Manager
@@ -40,8 +41,6 @@ module RocketTag
         klass.has_many :taggings , :dependent => :destroy , :as => :taggable, :class_name => "RocketTag::Tagging"
         klass.has_many :tags     , :source => :tag, :through => :taggings, :class_name => "RocketTag::Tag"
       end
-
-
     end
 
     def tags_for_context context
@@ -54,6 +53,37 @@ module RocketTag
 
     def destroy_tags_for_context context
       taggings_for_context(context).delete_all
+    end
+
+    module InstanceMethods
+      def reload
+        super
+        self.class.rocket_tag.contexts.each do |context|
+          write_context context, []
+        end
+        @tags_cached = false
+        cache_tags
+      end
+
+      def cache_tags
+        unless @tags_cached
+          tags_by_context ||= send("taggings").group_by{|f| f.context }
+          tags_by_context.each do |context,v|
+            write_context context, v.map{|t| t.tag.name}
+          end
+          @tags_cached = true
+        end
+      end
+
+      def write_context context, list
+        @contexts ||= {}
+        @contexts[context.to_sym] = list
+      end
+
+      def read_context context
+        @contexts ||= {}
+        @contexts[context.to_sym] || []
+      end
     end
 
     module ClassMethods
@@ -73,7 +103,7 @@ module RocketTag
       def _with_min min, tags_list
         if min and min > 1
           group{~id}.
-          having{count(~id)>=my{min}}
+            having{count(~id)>=my{min}}
         else
           where{}
         end
@@ -94,19 +124,19 @@ module RocketTag
         end
 
         lambda do |&block|
-            if options.delete :where
-              where &block
-            else
-              squeel &block
-            end
+        if options.delete :where
+          where &block
+        else
+          squeel &block
+        end
         end.call do
           id.in(
             my{self}.
-              select{id}.
-              joins{tags}.
-              where{tags.name.in(my{tags_list})}.
-              _with_tag_context(on).
-              _with_min(min, tags_list)
+            select{id}.
+            joins{tags}.
+            where{tags.name.in(my{tags_list})}.
+            _with_tag_context(on).
+            _with_min(min, tags_list)
           )
         end
 
@@ -116,44 +146,21 @@ module RocketTag
       # and do a sub select as we are using gr
       def count
       end
-        
+
 
       def tagged_with tags_list, options = {}
         options[:where] = true
         tagged_with_sifter(tags_list, options)
       end
 
-      def attr_taggable *contexts
-
-        if contexts.blank?
-          contexts = [:tag]
-        end
-
-        rocket_tag.contexts += contexts
-
-        contexts.each do |context|
+      def setup_for_rocket_tag
+        unless @setup_for_rocket_tag
+          @setup_for_rocket_tag = true
           class_eval do
-
             default_scope do
               preload{taggings}.preload{tags}
             end
 
-            has_many "#{context}_taggings".to_sym, 
-              :source => :taggable,  
-              :as => :taggable,
-              :conditions => { :context => context }
-
-            has_many "#{context}_tags".to_sym,
-              :source => :tag,
-              :through => :taggings,
-              :conditions => [ "taggings.context = ?", context ]
-
-
-            validate context do
-              if not send(context).kind_of? Enumerable
-                errors.add context, :invalid
-              end
-            end
             before_save do
               @tag_dirty ||= Set.new
 
@@ -186,30 +193,45 @@ module RocketTag
               end
               @tag_dirty = Set.new
             end
+          end
+        end
+      end
 
-            def reload
-              super
-              self.class.rocket_tag.contexts.each do |context|
-                write_attribute context, []
+      def attr_taggable *contexts
+
+        if contexts.blank?
+          contexts = [:tag]
+        end
+
+        rocket_tag.contexts += contexts
+
+        setup_for_rocket_tag
+
+        contexts.each do |context|
+          class_eval do
+
+            has_many "#{context}_taggings".to_sym, 
+              :source => :taggable,  
+              :as => :taggable,
+              :conditions => { :context => context }
+
+            has_many "#{context}_tags".to_sym,
+              :source => :tag,
+              :through => :taggings,
+              :conditions => [ "taggings.context = ?", context ]
+
+
+            validate context do
+              if not send(context).kind_of? Enumerable
+                errors.add context, :invalid
               end
-              @tags_cached = false
-              cache_tags
             end
 
-            define_method "cache_tags" do
-              unless @tags_cached
-                tags_by_context ||= send("taggings").group_by{|f| f.context }
-                tags_by_context.each do |context,v|
-                  write_attribute context, v.map{|t| t.tag.name}
-                end
-                @tags_cached = true
-              end
-            end
 
             # Return an array of RocketTag::Tags for the context
             define_method "#{context}" do
               cache_tags
-              r = read_attribute(context) || []
+              read_context(context)
             end
 
 
@@ -218,11 +240,11 @@ module RocketTag
 
               # Ensure the tags are loaded
               cache_tags
-              write_attribute(context, list)
+              write_context(context, list)
 
               (@tag_dirty ||= Set.new) << context
 
-                
+
             end
           end
         end
