@@ -51,3 +51,6 @@ pkg
 
 spec/debug.log
 *.sqlite3
+
+# RVM is building this directory. WTF?
+rake
