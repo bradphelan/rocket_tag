@@ -54,6 +54,39 @@ Usage
 	# Mix with active relation 
 	TaggableModel.tagged_with(["forking", "kiting"]).where( ["created_at > ?", Time.zone.now.ago(5.hours)])  
 
+  # Find similar models based on tags on a specific context and return in decending order
+  # of 'tags_count'
+  model.find_similar :on => "skills"
+  model.find_similar :on => "habits"
+
+  # Find similar models based on tags on every context and return in decending order
+  # of 'tags_count'. Note that each tag is still scoped according to it's context
+  model.find_similar  
+
+  # For reference the SQL generated for model.find_similar when there are
+  # context [:skills, :languages] available is
+
+  SELECT "taggable_models".* FROM   
+        (
+          SELECT COUNT("taggable_models"."id") AS tags_count, 
+                 taggable_models.* 
+          FROM   "taggable_models" 
+                 INNER JOIN "taggings" 
+                   ON "taggings"."taggable_id" = "taggable_models"."id" 
+                      AND "taggings"."taggable_type" = 'TaggableModel' 
+                 INNER JOIN "tags" 
+                   ON "tags"."id" = "taggings"."tag_id" 
+          WHERE  "taggable_models"."id" != 2 
+                 AND ((   ( "tags"."name" IN ( 'german', 'french' ) AND "taggings"."context" = 'languages' ) 
+                       OR ( "tags"."name" IN ( 'a', 'b', 'x' )      AND "taggings"."context" = 'skills' ) 
+                     )) 
+          GROUP  BY "taggable_models"."id" 
+          ORDER  BY tags_count DESC
+        ) taggable_models 
+
+
+    # Note the aliasing of the inner select to shield the GROUP BY from downstream active relation
+    # queries
 
 == Contributing to rocket_tag
  
