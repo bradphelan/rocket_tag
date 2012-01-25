@@ -33,38 +33,47 @@ Usage
 	item.habits = ["forking", "talking"]
 
 
-	# Match any tag across any contexts
+Match any tag across any contexts
+
 	TaggableModel.tagged_with ["forking", "kiting"]  
 
-	# Match all tags across any contexts
+Match all tags across any contexts
+
 	TaggableModel.tagged_with ["forking", "kiting"], :all => true
 
-	# Match any tag on a specific context
+Match any tag on a specific context
+
 	TaggableModel.tagged_with ["math", "kiting"], :on => "skills"
 
-	# Match all tags on a specific context
+Match all tags on a specific context
+
 	TaggableModel.tagged_with ["math", "kiting"], :all => true, :on => "skills"
 	
-	# Match a miniumum number of tags
+Match a miniumum number of tags
+
 	TaggableModel.tagged_with ["math", "kiting", "coding", "sleeping"], :min => 2, :on => "skills"
 	
-	# Take advantage of the tags_count synthetic column returned with every query
+Take advantage of the tags_count synthetic column returned with every query
+
 	TaggableModel.tagged_with(["math", "kiting", "coding", "sleeping"], :on => "skills").where{tags_count>=2}	
 
-	# Mix with active relation 
+Mix with active relation 
+
 	TaggableModel.tagged_with(["forking", "kiting"]).where( ["created_at > ?", Time.zone.now.ago(5.hours)])  
 
-  # Find similar models based on tags on a specific context and return in decending order
-  # of 'tags_count'
+Find similar models based on tags on a specific context and return in decending order
+of 'tags_count'
+
   model.find_similar :on => "skills"
   model.find_similar :on => "habits"
 
-  # Find similar models based on tags on every context and return in decending order
-  # of 'tags_count'. Note that each tag is still scoped according to it's context
+Find similar models based on tags on every context and return in decending order
+of 'tags_count'. Note that each tag is still scoped according to it's context
+
   model.find_similar  
 
-  # For reference the SQL generated for model.find_similar when there are
-  # context [:skills, :languages] available is
+For reference the SQL generated for model.find_similar when there are
+context [:skills, :languages] available is
 
       SELECT "taggable_models".* FROM   
             (
@@ -85,8 +94,8 @@ Usage
             ) taggable_models 
 
 
-    # Note the aliasing of the inner select to shield the GROUP BY from downstream active relation
-    # queries
+Note the aliasing of the inner select to shield the GROUP BY from downstream active relation
+queries
 
 == Contributing to rocket_tag
  
