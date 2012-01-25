@@ -100,6 +100,7 @@ describe TaggableModel do
       @t01.languages =  [ "german" , "italian"]
 
       @t10.skills    =  [ "a"      , "c"]
+      @t10.languages =  [ "french" , "hebrew"]
 
       @t11.skills    =  [ "a"      , "c"]
 
@@ -165,9 +166,47 @@ describe TaggableModel do
     end
 
     describe "#tagged_similar" do
-      it "should work" do
+      it "should return similar items" do
         @t00.tagged_similar(:on => :skills).count.should == 3
+        @t00.tagged_similar(:on => :languages).count.should == 3
+        @t00.tagged_similar.count.should == 4
       end
+
+      it "should return similar items in the correct order with the correct tags_count" do 
+
+        # ----
+        similar = @t00.tagged_similar(:on => :skills).all
+        similar[0].id.should == @t01.id
+        similar[1].id.should == @t10.id
+        similar[2].id.should == @t11.id
+
+        similar[0].tags_count.should == 2
+        similar[1].tags_count.should == 1
+        similar[2].tags_count.should == 1
+
+        # ----
+        similar = @t00.tagged_similar(:on => :languages).all
+        similar[0].id.should == @t01.id
+        similar[1].id.should == @t10.id
+        similar[2].id.should == @t21.id
+
+        similar[0].tags_count.should == 1
+        similar[1].tags_count.should == 1
+        similar[2].tags_count.should == 1
+
+        # ----
+        similar = @t00.tagged_similar.all
+        similar[0].id.should == @t01.id
+        similar[1].id.should == @t10.id
+        similar[2].id.should == @t11.id
+        similar[3].id.should == @t21.id
+
+        similar[0].tags_count.should == 3
+        similar[1].tags_count.should == 2
+        similar[2].tags_count.should == 1
+        similar[3].tags_count.should == 1
+      end
+
     end
 
     describe "#tagged_with" do
@@ -237,8 +276,9 @@ describe TaggableModel do
               l_t[:user_id].count.as("count_all")
           ).as "foo"
 
-          puts TaggableModel.joins("JOIN " + counts.to_sql ).to_sql
+          #puts TaggableModel.joins("JOIN " + counts.to_sql ).to_sql
         end
+
         it "should" do
           u_t = Arel::Table::new :users
           l_t = Arel::Table::new :logs
@@ -256,7 +296,7 @@ describe TaggableModel do
             eq(counts[:user_id])).
             project("*").project(counts[:count_all])
 
-          puts users.to_sql
+          # puts users.to_sql
           
         end
       end
@@ -270,7 +310,6 @@ describe TaggableModel do
           x = TaggableModel.where do
             TaggableModel.tagged_with_sifter(["a", "b"]) & TaggableModel.tagged_with_sifter(["c"])
           end.to_sql
-          puts x
 
           TaggableModel.where do
             TaggableModel.tagged_with_sifter(["a", "b"])

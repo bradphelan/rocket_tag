@@ -85,14 +85,38 @@ module RocketTag
     module InstanceMethods
       def tagged_similar options = {}
         context = options.delete :on
-        raise Exception.new("#{context} is not a valid tag context for #{self.class}") unless self.class.rocket_tag.contexts.include? context
+        if context
+          raise Exception.new("#{context} is not a valid tag context for #{self.class}") unless self.class.rocket_tag.contexts.include? context
+        end
         if context
           contexts = [context]
         else
           contexts = self.class.rocket_tag.contexts
         end
-        tags = send context.to_sym
-        self.class.tagged_with(tags, options).where{id != my{id}}
+
+        if contexts.size > 1
+          contexts = contexts.delete :tag
+        end
+
+        conditions = contexts.map do |context|
+          _tags = send context.to_sym
+          self.class.squeel do
+            (tags.name.in(my{_tags}) & (taggings.context == my{context}))
+          end
+        end
+
+        condition = conditions.inject do |s, t|
+          s | t
+        end
+
+        inner = self.class.select{count(~id).as(tags_count)}.
+        select("#{self.class.table_name}.*").
+        joins{tags}.where{condition}.
+        group{~id}.
+        where{~id != my{id}}.
+        order("tags_count DESC")
+
+        r = self.class.from("(#{inner.to_sql}) #{self.class.table_name}")
       end
     end
 
