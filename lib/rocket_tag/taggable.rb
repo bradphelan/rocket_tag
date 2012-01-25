@@ -96,6 +96,10 @@ module RocketTag
           contexts = contexts.delete :tag
         end
 
+        contexts = contexts.reject do |c|
+          send(c.to_sym).size == 0
+        end
+
         conditions = contexts.map do |context|
           _tags = send context.to_sym
           self.class.squeel do
