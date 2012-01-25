@@ -66,23 +66,23 @@ Usage
   # For reference the SQL generated for model.find_similar when there are
   # context [:skills, :languages] available is
 
-  SELECT "taggable_models".* FROM   
-        (
-          SELECT COUNT("taggable_models"."id") AS tags_count, 
-                 taggable_models.* 
-          FROM   "taggable_models" 
-                 INNER JOIN "taggings" 
-                   ON "taggings"."taggable_id" = "taggable_models"."id" 
-                      AND "taggings"."taggable_type" = 'TaggableModel' 
-                 INNER JOIN "tags" 
-                   ON "tags"."id" = "taggings"."tag_id" 
-          WHERE  "taggable_models"."id" != 2 
-                 AND ((   ( "tags"."name" IN ( 'german', 'french' ) AND "taggings"."context" = 'languages' ) 
-                       OR ( "tags"."name" IN ( 'a', 'b', 'x' )      AND "taggings"."context" = 'skills' ) 
-                     )) 
-          GROUP  BY "taggable_models"."id" 
-          ORDER  BY tags_count DESC
-        ) taggable_models 
+      SELECT "taggable_models".* FROM   
+            (
+              SELECT COUNT("taggable_models"."id") AS tags_count, 
+                     taggable_models.* 
+              FROM   "taggable_models" 
+                     INNER JOIN "taggings" 
+                       ON "taggings"."taggable_id" = "taggable_models"."id" 
+                          AND "taggings"."taggable_type" = 'TaggableModel' 
+                     INNER JOIN "tags" 
+                       ON "tags"."id" = "taggings"."tag_id" 
+              WHERE  "taggable_models"."id" != 2 
+                     AND ((   ( "tags"."name" IN ( 'german', 'french' ) AND "taggings"."context" = 'languages' ) 
+                           OR ( "tags"."name" IN ( 'a', 'b', 'x' )      AND "taggings"."context" = 'skills' ) 
+                         )) 
+              GROUP  BY "taggable_models"."id" 
+              ORDER  BY tags_count DESC
+            ) taggable_models 
 
 
     # Note the aliasing of the inner select to shield the GROUP BY from downstream active relation
