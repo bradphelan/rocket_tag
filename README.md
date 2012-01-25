@@ -111,5 +111,6 @@ queries
 
 Copyright (c) 2011 Brad Phelan. See LICENSE.txt for
 further details.
+
 Available for hire for your next ROR project at <a href="http://xtargets.com" title="XTargets: Ruby On Rails Solutions" rel="author">XTargets: Ruby On Rails Solutions</a>
 
