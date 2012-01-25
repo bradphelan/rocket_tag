@@ -4,7 +4,7 @@ module RocketTag
   module Taggable
     def self.included(base)
       base.extend ClassMethods
-      base.send :include, InstanceMethods
+      #base.send :include, InstanceMethods
     end
 
     class Manager
@@ -80,9 +80,7 @@ module RocketTag
         @contexts ||= {}
         @contexts[context.to_sym] || []
       end
-    end
 
-    module InstanceMethods
       def tagged_similar options = {}
         context = options.delete :on
         if context
@@ -225,7 +223,12 @@ module RocketTag
         end
       end
 
+      @@acts_as_rocket_tag = false
       def attr_taggable *contexts
+        unless @@acts_as_rocket_tag
+          include RocketTag::Taggable::InstanceMethods
+          @@acts_as_rocket_tag = true
+        end
 
         if contexts.blank?
           contexts = [:tag]
