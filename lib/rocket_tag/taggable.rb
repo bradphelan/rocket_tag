@@ -227,11 +227,10 @@ module RocketTag
         end
       end
 
-      @@acts_as_rocket_tag = false
       def attr_taggable *contexts
-        unless @@acts_as_rocket_tag
+        unless class_variable_defined?(:@@acts_as_rocket_tag)
           include RocketTag::Taggable::InstanceMethods
-          @@acts_as_rocket_tag = true
+          class_variable_set(:@@acts_as_rocket_tag, true)
         end
 
         if contexts.blank?
