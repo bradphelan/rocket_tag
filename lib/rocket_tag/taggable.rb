@@ -153,8 +153,8 @@ module RocketTag
       def tagged_with tags_list, options = {}
         on = options.delete :on
 
-        inner = select{count(~id).as(tags_count)}
-            .select("#{self.table_name}.*").
+        inner = select{count(~id).as(tags_count)}.
+            select("#{self.table_name}.*").
             joins{tags}.
             where{tags.name.in(my{tags_list})}.
             _with_tag_context(on).
