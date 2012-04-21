@@ -64,13 +64,13 @@ Mix with active relation
 Find similar models based on tags on a specific context and return in decending order
 of 'tags_count'
 
-    model.find_similar :on => "skills"
-    model.find_similar :on => "habits"
+    model.tagged_similar :on => "skills"
+    model.tagged_similar :on => "habits"
 
 Find similar models based on tags on every context and return in decending order
 of 'tags_count'. Note that each tag is still scoped according to it's context
 
-    model.find_similar  
+    model.tagged_similar  
 
 For reference the SQL generated for model.find_similar when there are
 context [:skills, :languages] available is
