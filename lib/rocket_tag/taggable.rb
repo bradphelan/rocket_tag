@@ -183,6 +183,8 @@ module RocketTag
 
       end
 
+      # Generates a query that returns list of popular tags
+      # for given model with an extra column :tags_count.
       def popular_tags options={}
         context = options.delete :on
         if context
