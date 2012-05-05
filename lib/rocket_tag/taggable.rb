@@ -183,6 +183,36 @@ module RocketTag
 
       end
 
+      def popular_tags options={}
+        context = options.delete :on
+        if context
+          if context.class == Array
+            contexts = context
+          else
+            contexts = [context]
+          end
+        else
+          contexts = []
+        end
+
+        conditions = contexts.map do |context|
+          squeel do
+            (taggings.context == my{context})
+          end
+        end
+
+        condition = conditions.inject do |s, t|
+          s | t
+        end
+
+        RocketTag::Tag.select{count(~id).as(tags_count)}.
+            select("#{RocketTag::Tag.table_name}.*").
+            joins{taggings.outer}.where{condition}.
+            where{ taggings.taggable_type == my{self.to_s} }.
+            group{~id}.
+            order("tags_count DESC")
+      end
+
       def setup_for_rocket_tag
         unless @setup_for_rocket_tag
           @setup_for_rocket_tag = true
@@ -284,8 +314,6 @@ module RocketTag
           end
         end
       end
-
     end
-
   end
 end
