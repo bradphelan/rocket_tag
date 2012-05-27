@@ -72,7 +72,7 @@ of 'tags_count'. Note that each tag is still scoped according to it's context
 
     model.tagged_similar  
 
-For reference the SQL generated for model.find_similar when there are
+For reference the SQL generated for model.tagged_similar when there are
 context [:skills, :languages] available is
 
       SELECT "taggable_models".* FROM   
