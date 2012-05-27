@@ -14,6 +14,11 @@ describe TaggableModel do
       m = TaggableModel.new :skills => %q%hello, "is it me, you are looking for", cat%
       m.skills.should == ["hello", "is it me, you are looking for", "cat"]
     end
+
+    it "parses an empty string to an empty array" do
+      m = TaggableModel.new :skills => ""
+      m.skills.should == []
+    end
   end
 
   describe "#save" do
