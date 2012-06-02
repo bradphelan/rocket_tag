@@ -206,13 +206,25 @@ module RocketTag
         condition = conditions.inject do |s, t|
           s | t
         end
-
-        RocketTag::Tag.select{count(~id).as(tags_count)}.
+        inner = RocketTag::Tag.select{count(~id).as(tags_count)}.
             select("#{RocketTag::Tag.table_name}.*").
             joins{taggings.outer}.where{condition}.
             where{ taggings.taggable_type == my{self.to_s} }.
-            group{~id}.
-            order("tags_count DESC")
+            group{~id} #.
+            #order("tags_count DESC")
+        r = from("(#{inner.to_sql}) #{table_name}")
+
+        if min = options.delete(:min)
+          r = r.where{tags_count>=my{min}}
+        end
+
+        if options.delete :sifter
+          squeel do
+            id.in(r.select{"id"})
+          end
+        else
+          r.select("*")
+        end
       end
 
       def setup_for_rocket_tag
