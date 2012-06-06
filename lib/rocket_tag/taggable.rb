@@ -44,7 +44,8 @@ module RocketTag
     end
 
     def taggings_for_context context
-      taggings.where{taggings.context==my{context}}
+      #taggings.where{taggings.context==my{context}}
+      taggings.where("context=?",context)
     end
 
     def destroy_tags_for_context context
