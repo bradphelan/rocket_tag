@@ -159,7 +159,7 @@ module RocketTag
             joins{tags}.
             where{tags.name.in(my{tags_list})}.
             _with_tag_context(on).
-            group{~id}
+            group(self.column_names)
 
         # Wrap the inner query with an outer query to shield
         # the group and aggregate clauses from downstream
