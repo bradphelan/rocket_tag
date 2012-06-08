@@ -322,8 +322,21 @@ describe TaggableModel do
         end
 
       end
-
+      
+      describe "#popular_tags" do
+        it "should return correct list (and correctly ordered) of popular tags for class and context" do
+          TaggableModel.popular_tags.all.length.should == RocketTag::Tag.all.count
+          TaggableModel.popular_tags.limit(10).all.length.should == 10
+          TaggableModel.popular_tags.order('tags_count desc, name desc').first.name.should == 'c'
+          TaggableModel.popular_tags.order('id asc').first.name.should == 'a'
+          TaggableModel.popular_tags.order('id asc').last.name.should == 'jinglish'
+          TaggableModel.popular_tags(:on=>:skills).order('name asc').first.name.should == 'a'
+          TaggableModel.popular_tags(:on=>:skills).order('name asc').last.name.should == 'y'
+          TaggableModel.popular_tags(:on=>[:skills, :languages]).order('id asc').first.name.should == 'a'
+          TaggableModel.popular_tags(:on=>[:skills, :languages]).order('id asc').last.name.should == 'jinglish'
+          TaggableModel.popular_tags(:min=>2).all.length.should == 6 ## dirty!
+        end
+      end
     end
   end
 end
-
