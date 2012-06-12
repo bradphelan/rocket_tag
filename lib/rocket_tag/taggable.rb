@@ -114,7 +114,7 @@ module RocketTag
         inner = self.class.select{count(~id).as(tags_count)}.
         select("#{self.class.table_name}.*").
         joins{tags}.where{condition}.
-        group{~id}.
+        group(self.class.column_names.map{|col| "#{self.class.table_name}.#{col}"}).
         where{~id != my{id}}.
         order("tags_count DESC")
 
