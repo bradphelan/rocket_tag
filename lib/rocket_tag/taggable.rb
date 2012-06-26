@@ -103,7 +103,7 @@ module RocketTag
         conditions = contexts.map do |context|
           _tags = send context.to_sym
           self.class.squeel do
-            (tags.name.in(my{_tags}) & (taggings.context == context.to_s))
+            (tags.name.in(_tags) & (taggings.context == context.to_s))
           end
         end
 
@@ -156,7 +156,7 @@ module RocketTag
         inner = select{count(~id).as(tags_count)}.
             select("#{self.table_name}.*").
             joins{tags}.
-            where{tags.name.in(my{tags_list})}.
+            where{tags.name.in(tags_list)}.
             _with_tag_context(on).
             group(self.column_names.map{|col| "#{self.table_name}.#{col}"})
 
@@ -166,11 +166,11 @@ module RocketTag
         r = from("(#{inner.to_sql}) #{table_name}")
 
         if options.delete :all
-          r = r.where{tags_count==my{tags_list.length}}
+          r = r.where{tags_count==tags_list.length}
         end
 
         if min = options.delete(:min)
-          r = r.where{tags_count>=my{min}}
+          r = r.where{tags_count>=min}
         end
 
         if options.delete :sifter
@@ -215,7 +215,7 @@ module RocketTag
         r = from("(#{inner.to_sql}) #{table_name}")
 
         if min = options.delete(:min)
-          r = r.where{tags_count>=my{min}}
+          r = r.where{tags_count>=min}
         end
 
         if options.delete :sifter
@@ -246,7 +246,7 @@ module RocketTag
                 destroy_tags_for_context context
 
                 # Find existing tags
-                exisiting_tags = Tag.where{name.in(my{list})}
+                exisiting_tags = Tag.where{name.in(list)}
                 exisiting_tag_names = exisiting_tags.map &:name
 
                 # Find missing tags
