@@ -44,7 +44,7 @@ module RocketTag
     end
 
     def taggings_for_context context
-      taggings.where{taggings.context==my{context}}
+      taggings.where{taggings.context==context.to_s}
     end
 
     def destroy_tags_for_context context
@@ -103,7 +103,7 @@ module RocketTag
         conditions = contexts.map do |context|
           _tags = send context.to_sym
           self.class.squeel do
-            (tags.name.in(my{_tags}) & (taggings.context == my{context}))
+            (tags.name.in(my{_tags}) & (taggings.context == context.to_s))
           end
         end
 
@@ -130,7 +130,7 @@ module RocketTag
 
       def _with_tag_context context
         if context
-          where{taggings.context == my{context} }
+          where{taggings.context == context.to_s}
         else
           where{ }
         end
@@ -199,7 +199,7 @@ module RocketTag
 
         conditions = contexts.map do |context|
           squeel do
-            (taggings.context == my{context})
+            (taggings.context == context.to_s)
           end
         end
 
