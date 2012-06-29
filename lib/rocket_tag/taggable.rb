@@ -11,11 +11,7 @@ module Squeel
         #
         # This call isolates the group by behaviours.
         def isolate_group_by_as(type)
-          type.from("(#{to_sql}) #{type.table_name}")
-        end
-
-        def select_all
-          select('*')
+          type.from(self.arel.as(type.table_name))
         end
 
         # We really only want to group on id for practical
@@ -167,8 +163,13 @@ module RocketTag
       # Provides the tag counting functionality by adding an
       # aggregate count on id. Assumes valid a join has been
       # made.
+      #
+      # Note that I should be able to chain count tags to 
+      # the relation instead of passing the rel parameter in
+      # however my tests fails with wrong counts. This is
+      # not so elegant
       def count_tags(rel)
-        rel.select_all.
+        rel.select('*').
         select{count(~id).as(tags_count)}.
         group_by_all_columns.
         order("tags_count DESC").
