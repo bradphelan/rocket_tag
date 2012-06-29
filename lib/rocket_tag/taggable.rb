@@ -1,4 +1,40 @@
 require 'squeel'
+module Squeel
+  module Adapters
+    module ActiveRecord
+      module RelationExtensions
+
+        # The purpose of this call is to close a query and make
+        # it behave as a simple table or view. If a query has
+        # aggregate functions applied then downstream active
+        # relation chaining causes unpredictable behaviour.
+        #
+        # This call isolates the group by behaviours.
+        def isolate_group_by_as(type)
+          type.from("(#{to_sql}) #{type.table_name}")
+        end
+
+        def select_all
+          select('*')
+        end
+
+        # We really only want to group on id for practical
+        # purposes but POSTGRES requires that a group by outputs
+        # all the column names not under an aggregate function.
+        #
+        # This little helper generates such a group by
+        def group_by_all_columns
+          cn = self.column_names
+          group { cn.map { |col| __send__(col) } }
+        end
+
+        def exists
+        end
+ 
+      end
+    end
+  end
+end
 
 module RocketTag
   module Taggable
@@ -81,6 +117,7 @@ module RocketTag
         @contexts[context.to_sym] || []
       end
 
+
       def tagged_similar options = {}
         context = options.delete :on
         if context
@@ -111,14 +148,13 @@ module RocketTag
           s | t
         end
 
-        inner = self.class.select{count(~id).as(tags_count)}.
-        select("#{self.class.table_name}.*").
-        joins{tags}.where{condition}.
-        group(self.class.column_names.map{|col| "#{self.class.table_name}.#{col}"}).
-        where{~id != my{id}}.
-        order("tags_count DESC")
+        r = self.class.
+          joins{tags}.
+          where{condition}.
+          where{~id != my{id}}
 
-        r = self.class.from("(#{inner.to_sql}) #{self.class.table_name}")
+        self.class.count_tags(r)
+
       end
     end
 
@@ -128,9 +164,44 @@ module RocketTag
         @rocket_tag ||= RocketTag::Taggable::Manager.new(self)
       end
 
-      def _with_tag_context context
+      # Provides the tag counting functionality by adding an
+      # aggregate count on id. Assumes valid a join has been
+      # made.
+      def count_tags(rel)
+        rel.select_all.
+        select{count(~id).as(tags_count)}.
+        group_by_all_columns.
+        order("tags_count DESC").
+        isolate_group_by_as(self)
+      end
+
+      # Filters tags according to
+      # context. context param can
+      # be either a single context
+      # id or an array of context ids
+      def with_tag_context context
         if context
-          where{taggings.context == context.to_s}
+          if context
+            if context.class == Array
+              contexts = context
+            else
+              contexts = [context]
+            end
+          else
+            contexts = []
+          end
+
+          conditions = contexts.map do |context|
+            squeel do
+              (taggings.context == context.to_s)
+            end
+          end
+
+          condition = conditions.inject do |s, t|
+            s | t
+          end
+
+          where{condition}
         else
           where{ }
         end
@@ -151,25 +222,17 @@ module RocketTag
       # Generates a query that provides the matches
       # along with an extra column :tags_count.
       def tagged_with tags_list, options = {}
-        on = options.delete :on
 
-        inner = select{count(~id).as(tags_count)}.
-            select("#{self.table_name}.*").
-            joins{tags}.
+        r = joins{tags}.
             where{tags.name.in(tags_list)}.
-            _with_tag_context(on).
-            group(self.column_names.map{|col| "#{self.table_name}.#{col}"})
+            with_tag_context(options.delete :on)
 
-        # Wrap the inner query with an outer query to shield
-        # the group and aggregate clauses from downstream
-        # queries
-        r = from("(#{inner.to_sql}) #{table_name}")
+
+        r = count_tags(r)
 
         if options.delete :all
           r = r.where{tags_count==tags_list.length}
-        end
-
-        if min = options.delete(:min)
+        elsif min = options.delete(:min)
           r = r.where{tags_count>=min}
         end
 
@@ -178,7 +241,7 @@ module RocketTag
             id.in(r.select{"id"})
           end
         else
-          r.select("*")
+          r
         end
 
       end
@@ -186,45 +249,20 @@ module RocketTag
       # Generates a query that returns list of popular tags
       # for given model with an extra column :tags_count.
       def popular_tags options={}
-        context = options.delete :on
-        if context
-          if context.class == Array
-            contexts = context
-          else
-            contexts = [context]
-          end
-        else
-          contexts = []
-        end
 
-        conditions = contexts.map do |context|
-          squeel do
-            (taggings.context == context.to_s)
-          end
-        end
+        r = 
+            RocketTag::Tag.
+            joins{taggings}.
+            with_tag_context(options.delete :on).
+            by_taggable_type(self)
 
-        condition = conditions.inject do |s, t|
-          s | t
-        end
-        inner = RocketTag::Tag.select{count(~id).as(tags_count)}.
-            select("#{RocketTag::Tag.table_name}.*").
-            joins{taggings.outer}.where{condition}.
-            where{ taggings.taggable_type == my{self.to_s} }.
-            group{~id} #.
-            #order("tags_count DESC")
-        r = from("(#{inner.to_sql}) #{table_name}")
+        r = count_tags(r)
 
         if min = options.delete(:min)
           r = r.where{tags_count>=min}
         end
 
-        if options.delete :sifter
-          squeel do
-            id.in(r.select{"id"})
-          end
-        else
-          r.select("*")
-        end
+        r
       end
 
       def setup_for_rocket_tag
@@ -261,7 +299,10 @@ module RocketTag
                 tags_to_assign = exisiting_tags + created_tags
 
                 tags_to_assign.each do |tag|
-                  tagging = Tagging.new :tag => tag, :taggable => self, :context => context, :tagger => nil
+                  tagging = Tagging.new :tag => tag, 
+                    :taggable => self, 
+                    :context => context, 
+                    :tagger => nil
                   self.taggings << tagging
                 end
               end

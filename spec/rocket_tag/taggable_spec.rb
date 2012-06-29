@@ -306,18 +306,16 @@ describe TaggableModel do
         end
       end
 
-      describe "#tagged_with_sifter" do
-        it "should be the work horse of #tagged_with but returns a sifter that can be composed into other queries" do
+      describe "Using in subqueries" do
+        it "should be possible to select the 'id' of the relation to use in a subquery" do
+
           TaggableModel.where do
-            TaggableModel.tagged_with_sifter(["a", "b"]) & TaggableModel.tagged_with_sifter(["c"])
+            id.in(TaggableModel.tagged_with(["a", "b"]).select{id}) & 
+            id.in(TaggableModel.tagged_with(["c"]).select{id})
           end.count.should == 2
 
-          x = TaggableModel.where do
-            TaggableModel.tagged_with_sifter(["a", "b"]) & TaggableModel.tagged_with_sifter(["c"])
-          end.to_sql
-
           TaggableModel.where do
-            TaggableModel.tagged_with_sifter(["a", "b"])
+            id.in(TaggableModel.tagged_with(["a", "b"]).select{id})
           end.count.should == 4
         end
 
