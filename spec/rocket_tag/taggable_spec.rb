@@ -358,13 +358,13 @@ describe TaggableModel do
 
       describe "tag cloud calculations" do
         it "should return tags on an association and the counts thereof" do
-          @user0.taggable_models.popular_tags.each do |tag|
-            puts "#{tag.name}\t#{tag.tags_count}"
-          end
-          puts "-------------"
-          @user1.taggable_models.popular_tags.each do |tag|
-            puts "#{tag.name}\t#{tag.tags_count}"
-          end
+#           @user0.taggable_models.popular_tags.each do |tag|
+#             puts "#{tag.name}\t#{tag.tags_count}"
+#           end
+#           puts "-------------"
+#           @user1.taggable_models.popular_tags.each do |tag|
+#             puts "#{tag.name}\t#{tag.tags_count}"
+#           end
 
           # Check that the tags_count on each tag is in
           # descending order.
