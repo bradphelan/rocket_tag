@@ -8,6 +8,11 @@ class TaggableModel < ActiveRecord::Base
   attr_taggable :skills
   attr_taggable :needs, :offerings
   has_many :untaggable_models
+  belongs_to :user
+end
+
+class User < ActiveRecord::Base
+  has_many :taggable_models
 end
 
 class CachedModel < ActiveRecord::Base

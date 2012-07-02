@@ -52,6 +52,10 @@ Match all tags on a specific context
 Match a miniumum number of tags
 
     TaggableModel.tagged_with ["math", "kiting", "coding", "sleeping"], :min => 2, :on => "skills"
+
+Match tags to specific contexts
+
+    TaggableModel.tagged_with { :skills => ["math", "kiting"], :languages => ["english", "german"]
 	
 Take advantage of the tags_count synthetic column returned with every query
 
@@ -60,6 +64,21 @@ Take advantage of the tags_count synthetic column returned with every query
 Mix with active relation 
 
     TaggableModel.tagged_with(["forking", "kiting"]).where( ["created_at > ?", Time.zone.now.ago(5.hours)])  
+
+or even downstream
+
+    User.where{email="bradphelan@xtargets.com"}.documents.tagged_with ['kiting', 'math'] , :on => :skills
+
+where we might have
+
+    class User < ActiveRecord::Base
+      has_many :documents
+    end
+
+    class Document < ActiveRecord::Base
+      belongs_to :user
+      attr_taggable :tags
+    end 
 
 Find similar models based on tags on a specific context and return in decending order
 of 'tags_count'
@@ -79,30 +98,24 @@ of 'tags_count'. Note that each tag is still scoped according to it's context
 
     model.tagged_similar  
 
-For reference the SQL generated for model.tagged_similar when there are
-context [:skills, :languages] available is
+Find popular tags and generate tags clouds for specific scopes
 
-      SELECT "taggable_models".* FROM   
-            (
-              SELECT COUNT("taggable_models"."id") AS tags_count, 
-                     taggable_models.* 
-              FROM   "taggable_models" 
-                     INNER JOIN "taggings" 
-                       ON "taggings"."taggable_id" = "taggable_models"."id" 
-                          AND "taggings"."taggable_type" = 'TaggableModel' 
-                     INNER JOIN "tags" 
-                       ON "tags"."id" = "taggings"."tag_id" 
-              WHERE  "taggable_models"."id" != 2 
-                     AND ((   ( "tags"."name" IN ( 'german', 'french' ) AND "taggings"."context" = 'languages' ) 
-                           OR ( "tags"."name" IN ( 'a', 'b', 'x' )      AND "taggings"."context" = 'skills' ) 
-                         )) 
-              GROUP  BY "taggable_models"."id" 
-              ORDER  BY tags_count DESC
-            ) taggable_models 
+    User.where{email="bradphelan@xtargets.com"}.documents.popular_tags
 
+where we might have
 
-Note the aliasing of the inner select to shield the GROUP BY from downstream active relation
-queries
+    class User < ActiveRecord::Base
+      has_many :documents
+    end
+
+    class Document < ActiveRecord::Base
+      belongs_to :user
+      attr_taggable :tags
+    end 
+
+and you can access the field *tags_count* on each Tag instance returned
+by the above query. Generating the CSS and html for your tag cloud
+is outside the scope of this project but it should be easy to do.
 
 == Contributing to rocket_tag
  

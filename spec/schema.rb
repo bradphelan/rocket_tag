@@ -17,6 +17,7 @@ ActiveRecord::Schema.define :version => 0 do
   end
   
   create_table :taggable_models, :force => true do |t|
+    t.column :user_id, :integer
     t.column :name, :string
     t.column :type, :string
     t.column :foo,  :string
@@ -46,7 +47,7 @@ ActiveRecord::Schema.define :version => 0 do
     t.column :cached_glass_list, :string
   end
   
-  create_table :taggable_users, :force => true do |t|
+  create_table :users, :force => true do |t|
     t.column :name, :string
   end
   

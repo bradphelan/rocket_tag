@@ -110,28 +110,21 @@ module RocketTag
         @contexts[context.to_sym] || []
       end
 
+      # Find models with similar tags to the
+      # current model ordered is decending
+      # order of the number of matches
       def tagged_similar options = {}
         context = options.delete :on
 
-        contexts = self.class.normalize_contexts(context, self.class.rocket_tag.contexts)
+        contexts = self.class.normalize_contexts context, 
+          self.class.rocket_tag.contexts
 
-        condition = contexts.reject do |c|
-          tags_for_context(c).size == 0
-        end.map do |context|
-          self.class.squeel do
-            tags.name.in(my{tags_for_context(context)}) & 
-              (taggings.context == context.to_s)
-          end
-        end.inject do |s, t|
-          s | t
-        end
-
-        r = self.class.
-          joins{tags}.
-          where{condition}.
-          where{~id != my{id}}
-
-        self.class.count_tags(r)
+        q = self.class.tagged_with Hash[*contexts.map{|c| 
+          [c, tags_for_context(c)]
+        }.flatten(1)]
+       
+        # Exclude self from the results
+        q.where{id!=my{id}}
 
       end
     end
@@ -153,7 +146,7 @@ module RocketTag
       #
       # rel can be passed as the last expression in a block
       # if desired.
-      def count_tags(rel=nil)
+      def tags_count(type=self)
         if block_given?
           rel = yield
         end
@@ -161,7 +154,7 @@ module RocketTag
         select{count(~id).as(tags_count)}.
         group_by_all_columns.
         order("tags_count DESC").
-        isolate_group_by_as(self)
+        isolate_group_by_as(type)
       end
 
       def is_valid_context? context
@@ -187,7 +180,7 @@ module RocketTag
       # Verify contexts are valid for the taggable type
       def validate_contexts contexts
         contexts.each do |context|
-          unless self.is_valid_context? context
+          unless is_valid_context? context
             raise Exception.new("#{context} is not a valid tag context for #{self}") 
           end
         end
@@ -214,54 +207,95 @@ module RocketTag
 
       end
 
-
-      # Generates a sifter or a where clause depending on options.
-      # The sifter generates a subselect with the body of the
-      # clause wrapped up so that it can be used as a condition
-      # within another squeel statement. 
-      #
-      # Query optimization is left up to the SQL engine.
-      def tagged_with_sifter tags_list, options = {}
-        options[:sifter] = true
-        tagged_with tags_list, options
-      end
-
-      # Generates a query that provides the matches
-      # along with an extra column :tags_count.
       def tagged_with tags_list, options = {}
 
-        r = count_tags do
-          joins{tags}.
+        # Grab table name
+        t = self.to_s
+
+        q = joins{taggings.tag}
+
+        case tags_list
+        when Hash
+          # A tag can only match it's context
+
+          c = tags_list.each_key.map do |context|
+            squeel do
+              tags.name.in(tags_list[context]) & (taggings.context == context.to_s)
+            end
+          end.inject do |s,t|
+            s | t
+          end
+
+          q = q.where(c)
+
+        else
+          # Any tag can match any context
+          q = q.
             where{tags.name.in(tags_list)}.
             where(with_tag_context(options.delete(:on)))
         end
 
-        if options.delete :all
-          r.where{tags_count==tags_list.length}
-        elsif min = options.delete(:min)
-          r.where{tags_count>=min}
-        else
-          r
-        end
+        q = q.group_by_all_columns.
+          select{count(tags.id).as(tags_count)}.
+          select('*').
+          order("tags_count desc")
+
+        # Isolate the aggregate uery by wrapping it as
+        #
+        # select * from ( ..... ) tags
+        q = from(q.arel.as(self.table_name))
+        
+        # Restrict by minimum tag counts if required
+        min = options.delete :min 
+        q = q.where{tags_count>=min} if min 
+
+        # Require all the tags if required
+        all = options.delete :all
+        q = q.where{tags_count==tags_list.length} if all
+
+        # Return the relation
+        q
+      end
+
+      # Get the tags associated with this model class
+      # This can be chained such as
+      #
+      # User.documents.tags
+      def tags(options = {})
+
+        # Grab the current scope
+        s = select{id}
+
+        # Grab table name
+        t = self.to_s
+
+        q = RocketTag::Tag.joins{taggings}.
+          where{taggings.taggable_type==t}.  # Apply taggable type
+          where{taggings.taggable_id.in(s)}. # Apply current scope
+          where(with_tag_context(options.delete(:on))). # Restrict by context
+          group_by_all_columns.
+          select{count(tags.id).as(tags_count)}.
+          select('*').
+          order("tags_count desc")
+
+        # Isolate the aggregate uery by wrapping it as
+        #
+        # select * from ( ..... ) tags
+        q = RocketTag::Tag.from(q.arel.as(RocketTag::Tag.table_name))
+        
+        # Restrict by minimum tag counts if required
+        min = options.delete :min 
+        q = q.where{tags_count>=min} if min 
+
+        # Return the relation
+        q
 
       end
 
       # Generates a query that returns list of popular tags
       # for given model with an extra column :tags_count.
       def popular_tags options={}
-
-        r = count_tags do 
-          RocketTag::Tag.
-            joins{taggings}.
-            where(with_tag_context(options.delete(:on))).
-            by_taggable_type(self)
-        end
-
-        if min = options.delete(:min)
-          r = r.where{tags_count>=min}
-        end
-
-        r
+        tags(options)
       end
 
       def setup_for_rocket_tag
@@ -335,20 +369,17 @@ module RocketTag
               :through => :taggings,
               :conditions => [ "taggings.context = ?", context ]
 
-
             validate context do
               if not send(context).kind_of? Enumerable
                 errors.add context, :invalid
               end
             end
 
-
             # Return an array of RocketTag::Tags for the context
             define_method "#{context}" do
               cache_tags
               tags_for_context(context)
             end
-
 
             define_method "#{context}=" do |list|
               list = Manager.parse_tags list
@@ -358,7 +389,6 @@ module RocketTag
               write_context(context, list)
 
               (@tag_dirty ||= Set.new) << context
-
 
             end
           end

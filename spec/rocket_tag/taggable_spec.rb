@@ -87,16 +87,19 @@ describe TaggableModel do
   describe "querying tags" do
 
     before :each do
-      @t00 = TaggableModel.create :name => "00", :foo => "A"
-      @t01 = TaggableModel.create :name => "01", :foo => "B"
+      @user0 = User.create :name => "brad"
+      @user1 = User.create :name => "hannah"
+
+      @t00 = TaggableModel.create :name => "00", :foo => "A", :user => @user0
+      @t01 = TaggableModel.create :name => "01", :foo => "B", :user => @user1
 
 
-      @t10 = TaggableModel.create :name => "10", :foo => "A"
-      @t11 = TaggableModel.create :name => "11", :foo => "B"
+      @t10 = TaggableModel.create :name => "10", :foo => "A", :user => @user0
+      @t11 = TaggableModel.create :name => "11", :foo => "B", :user => @user1
 
 
-      @t20 = TaggableModel.create :name => "20", :foo => "A"
-      @t21 = TaggableModel.create :name => "21", :foo => "B"
+      @t20 = TaggableModel.create :name => "20", :foo => "A", :user => @user0
+      @t21 = TaggableModel.create :name => "21", :foo => "B", :user => @user1
 
       @t00.skills    =  [ "a"      , "b",  "x"]
       @t00.languages =  [ "german" , "french"]
@@ -165,6 +168,14 @@ describe TaggableModel do
           r.find{|i|i.name == "01"}.tags_count.should == 2
           r.find{|i|i.name == "10"}.tags_count.should == 1
           r.find{|i|i.name == "11"}.tags_count.should == 1
+          r.find{|i|i.name == "21"}.should be_nil
+
+          # It should be possible to narrow scopes with tagged_with
+          r = @user0.taggable_models.tagged_with(["a", "b", "german"], :on => :skills).all
+          r.find{|i|i.name == "00"}.tags_count.should == 2
+          r.find{|i|i.name == "01"}.should be_nil
+          r.find{|i|i.name == "10"}.tags_count.should == 1
+          r.find{|i|i.name == "11"}.should be_nil
           r.find{|i|i.name == "21"}.should be_nil
 
         end
@@ -314,10 +325,11 @@ describe TaggableModel do
       describe "Using in subqueries" do
         it "should be possible to select the 'id' of the relation to use in a subquery" do
 
-          TaggableModel.where do
+          q = TaggableModel.where do
             id.in(TaggableModel.tagged_with(["a", "b"]).select{id}) & 
             id.in(TaggableModel.tagged_with(["c"]).select{id})
-          end.count.should == 2
+          end
+          q.count.should == 2
 
           TaggableModel.where do
             id.in(TaggableModel.tagged_with(["a", "b"]).select{id})
@@ -338,6 +350,40 @@ describe TaggableModel do
           TaggableModel.popular_tags(:on=>[:skills, :languages]).order('id asc').first.name.should == 'a'
           TaggableModel.popular_tags(:on=>[:skills, :languages]).order('id asc').last.name.should == 'jinglish'
           TaggableModel.popular_tags(:min=>2).all.length.should == 6 ## dirty!
+
+
+
+        end
+      end
+
+      describe "tag cloud calculations" do
+        it "should return tags on an association and the counts thereof" do
+          @user0.taggable_models.popular_tags.each do |tag|
+            puts "#{tag.name}\t#{tag.tags_count}"
+          end
+          puts "-------------"
+          @user1.taggable_models.popular_tags.each do |tag|
+            puts "#{tag.name}\t#{tag.tags_count}"
+          end
+
+          # Check that the tags_count on each tag is in
+          # descending order.
+          @user0.taggable_models.popular_tags.count.should == 8
+          @user0.taggable_models.popular_tags.inject do |s, t|
+            s.tags_count.should >= t.tags_count
+            t
+          end
+
+          @user1.taggable_models.popular_tags.count.should == 8
+          @user1.taggable_models.popular_tags.inject do |s, t|
+            s.tags_count.should >= t.tags_count
+            t
+          end
+
+          # Sanity check the two queries are not identical
+          @user0.taggable_models.popular_tags.should_not == 
+            @user1.taggable_models.popular_tags
+
         end
       end
     end
