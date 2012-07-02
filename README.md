@@ -67,6 +67,13 @@ of 'tags_count'
     model.tagged_similar :on => "skills"
     model.tagged_similar :on => "habits"
 
+The two cases of tagged_similar below are functionally identical because there are
+only two contexts specified on the class. If there were three or more contexts specified
+then the two below would not be identical.
+
+    model.tagged_similar :on => ["skills", "habits"]
+    model.tagged_similar
+
 Find similar models based on tags on every context and return in decending order
 of 'tags_count'. Note that each tag is still scoped according to it's context
 
