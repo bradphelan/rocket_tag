@@ -93,11 +93,6 @@ then the two below would not be identical.
     model.tagged_similar :on => ["skills", "habits"]
     model.tagged_similar
 
-Find similar models based on tags on every context and return in decending order
-of 'tags_count'. Note that each tag is still scoped according to it's context
-
-    model.tagged_similar  
-
 Find popular tags and generate tags clouds for specific scopes
 
     User.where{email="bradphelan@xtargets.com"}.documents.popular_tags
