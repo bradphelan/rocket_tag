@@ -117,7 +117,8 @@ and you can access the field *tags_count* on each Tag instance returned
 by the above query. Generating the CSS and html for your tag cloud
 is outside the scope of this project but it should be easy to do.
 
-== Contributing to rocket_tag
+Contributing to rocket_tag
+--------------------------
  
 * Check out the latest master to make sure the feature hasn't been implemented or the bug hasn't been fixed yet
 * Check out the issue tracker to make sure someone already hasn't requested it and/or contributed it
@@ -127,7 +128,8 @@ is outside the scope of this project but it should be easy to do.
 * Make sure to add tests for it. This is important so I don't break it in a future version unintentionally.
 * Please try not to mess with the Rakefile, version, or history. If you want to have your own version, or is otherwise necessary, that is fine, but please isolate to its own commit so I can cherry-pick around it.
 
-== Copyright
+Copyright
+---------
 
 Copyright (c) 2011 Brad Phelan. See LICENSE.txt for
 further details.
