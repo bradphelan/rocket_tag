@@ -4,16 +4,6 @@ module Squeel
     module ActiveRecord
       module RelationExtensions
 
-        # The purpose of this call is to close a query and make
-        # it behave as a simple table or view. If a query has
-        # aggregate functions applied then downstream active
-        # relation chaining causes unpredictable behaviour.
-        #
-        # This call isolates the group by behaviours.
-        def isolate_group_by_as(type)
-          type.from(self.arel.as(type.table_name))
-        end
-
         # We really only want to group on id for practical
         # purposes but POSTGRES requires that a group by outputs
         # all the column names not under an aggregate function.
@@ -33,7 +23,6 @@ module RocketTag
   module Taggable
     def self.included(base)
       base.extend ClassMethods
-      #base.send :include, InstanceMethods
     end
 
     class Manager
@@ -133,28 +122,6 @@ module RocketTag
 
       def rocket_tag
         @rocket_tag ||= RocketTag::Taggable::Manager.new(self)
-      end
-
-      # Provides the tag counting functionality by adding an
-      # aggregate count on id. Assumes valid a join has been
-      # made.
-      #
-      # Note that I should be able to chain count tags to 
-      # the relation instead of passing the rel parameter in
-      # however my tests fails with wrong counts. This is
-      # not so elegant
-      #
-      # rel can be passed as the last expression in a block
-      # if desired.
-      def tags_count(type=self)
-        if block_given?
-          rel = yield
-        end
-        rel.select('*').
-        select{count(~id).as(tags_count)}.
-        group_by_all_columns.
-        order("tags_count DESC").
-        isolate_group_by_as(type)
       end
 
       def is_valid_context? context
@@ -278,7 +245,7 @@ module RocketTag
           select('*').
           order("tags_count desc")
 
-        # Isolate the aggregate uery by wrapping it as
+        # Isolate the aggregate query by wrapping it as
         #
         # select * from ( ..... ) tags
         q = RocketTag::Tag.from(q.arel.as(RocketTag::Tag.table_name))
