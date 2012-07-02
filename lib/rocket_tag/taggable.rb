@@ -24,9 +24,6 @@ module Squeel
           group { cn.map { |col| __send__(col) } }
         end
 
-        def exists
-        end
- 
       end
     end
   end
