@@ -70,6 +70,7 @@ module RocketTag
     end
 
     module InstanceMethods
+
       def reload_with_tags(options = nil)
         self.class.rocket_tag.contexts.each do |context|
           write_context context, []
@@ -177,7 +178,7 @@ module RocketTag
       def tagged_with tags_list, options = {}
 
         # Grab table name
-        t = self.to_s
+        t = self.table_name
 
         q = joins{taggings.tag}
 
@@ -203,8 +204,8 @@ module RocketTag
         end
 
         q = q.group_by_all_columns.
-          select{count(tags.id).as(tags_count)}.
-          select('*').
+          select{count(tags.id).as( tags_count)}.
+          select{"#{t}.*"}.
           order("tags_count desc")
 
         # Isolate the aggregate uery by wrapping it as
@@ -242,7 +243,7 @@ module RocketTag
           where(with_tag_context(options.delete(:on))). # Restrict by context
           group_by_all_columns.
           select{count(tags.id).as(tags_count)}.
-          select('*').
+          select('tags.*').
           order("tags_count desc")
 
         # Isolate the aggregate query by wrapping it as
