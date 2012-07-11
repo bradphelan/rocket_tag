@@ -31,7 +31,7 @@ describe TaggableModel do
       @model.languages = ["x", "y"]
       @model.save
       @model.reload
-      @model.languages.should == ["x", "y"]
+      @model.languages.sort.should == ["x", "y"]
     end
 
     it "validates the model wrt to the context" do
@@ -206,7 +206,7 @@ describe TaggableModel do
         similar[2].tags_count.should == 1
 
         # ----
-        similar = @t00.tagged_similar(:on => :languages).all
+        similar = @t00.tagged_similar(:on => :languages).all.sort
         similar[0].id.should == @t01.id
         similar[1].id.should == @t10.id
         similar[2].id.should == @t21.id
