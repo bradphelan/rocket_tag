@@ -10,6 +10,9 @@ module RocketTag
       joins{taggings}.where{taggings.taggable_type == type.to_s}
     end
 
+    def tags_count
+      self[:tags_count].to_i
+    end
 
   end
 end

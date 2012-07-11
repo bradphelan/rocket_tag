@@ -343,6 +343,12 @@ module RocketTag
               end
             end
 
+            # This is to compensate for a rails bug that returns
+            # a string for postgres
+            def tags_count
+              self[:tags_count].to_i
+            end
+
             # Return an array of RocketTag::Tags for the context
             define_method "#{context}" do
               cache_tags
