@@ -388,4 +388,21 @@ describe TaggableModel do
       end
     end
   end
+  
+  describe "#popularity methods" do
+    it "should have popularity methods" do
+      methods = [:skills, :languages, :needs, :offerings]
+      methods.size.should eq TaggableModel.methods().grep(/popularity/).size        
+      methods.each do |method|
+        TaggableModel.respond_to?("#{method}_popularity").should be_true
+      end
+    end
+
+    it "should have popularity only own attrs" do
+      TaggableModel.create(:needs => ["foo", "bar", "baz"]).save
+      TaggableModel.create(:needs => ["foo", "qwerty"]).save
+      OtherTaggableModel.create(:needs => ["foo", "bar", "baz"]).save
+      TaggableModel.needs_popularity.should eq({"bar" => 1, "foo" => 2, "baz" => 1, "qwerty" => 1})
+    end
+  end
 end

@@ -325,6 +325,22 @@ module RocketTag
         setup_for_rocket_tag
 
         contexts.each do |context|
+          #Return hash with keys as +tag+ and 
+          #value popularity (number of tags for the current model)
+          #Example:
+          # Model.new.tags = ["a", "b", "c"]
+          # Model.new.tags = ["c", "b", "e"]
+          # Model.new.tags = ["c", "a", "e"]
+          #Then
+          # Model.tags_popularity => {"a" => 2, "b" => 2, "c" => 3, "e" => 2}
+          define_singleton_method "#{context}_popularity" do
+              RocketTag::Tagging.
+               joins("INNER JOIN `tags` ON taggings.tag_id = tags.id")
+                 .where("taggable_type=:type AND context = :context", 
+                   {:context => context, :type => self.to_s})
+                    .group("tags.name").count
+          end
+          
           class_eval do
 
             has_many "#{context}_taggings".to_sym, 
