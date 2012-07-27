@@ -16,6 +16,14 @@ ActiveRecord::Schema.define :version => 0 do
     t.string "name"
   end
   
+  create_table "alias_tags", :force => true, :id => false do |t|
+    t.integer "tag_id"
+    t.integer "alias_id" 
+  end
+
+  add_index "alias_tags", ["tag_id"]
+  add_index "alias_tags", ["alias_id"]
+
   create_table :taggable_models, :force => true do |t|
     t.column :user_id, :integer
     t.column :name, :string

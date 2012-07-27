@@ -182,13 +182,26 @@ module RocketTag
 
         q = joins{taggings.tag}
 
+        alias_tag_names = lambda do |list| 
+          names = RocketTag::Tag.select{:name}.where do
+            id.in(RocketTag::Tag.select{'alias_tags.alias_id'}
+              .joins(:alias).where{
+                tags.name.in(list)
+              })
+          end
+          names.map{|t| t.name}
+        end
+
         case tags_list
         when Hash
           # A tag can only match it's context
 
           c = tags_list.each_key.map do |context|
             squeel do
-              tags.name.in(tags_list[context]) & (taggings.context == context.to_s)
+              list = tags_list[context]
+              list << alias_tag_names.call(list)
+            
+              tags.name.in(list.flatten!) & (taggings.context == context.to_s)
             end
           end.inject do |s,t|
             s | t
@@ -198,8 +211,9 @@ module RocketTag
 
         else
           # Any tag can match any context
+          tags_list << alias_tag_names.call(tags_list) 
           q = q.
-            where{tags.name.in(tags_list)}.
+            where{tags.name.in(tags_list.flatten!)}.
             where(with_tag_context(options.delete(:on)))
         end
 
@@ -221,7 +235,7 @@ module RocketTag
         all = options.delete :all
         q = q.where{tags_count==tags_list.length} if all
 
-        # Return the relation
+        # Return the relation        
         q
       end
 

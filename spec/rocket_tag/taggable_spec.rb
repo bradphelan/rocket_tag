@@ -75,15 +75,13 @@ describe TaggableModel do
     end
 
     it "should generate the correct results" do
-
       TaggableModel.tagged_with(%w[a b], :all=>true).count(:distinct => true).should == 6
       TaggableModel.tagged_with(%w[a b], :all=>true).where{name.like "app%"}.count(:distinct => true).should == 3
-
       TaggableModel.tagged_with(%w[a b], :all=>true).where{name.like "%1"}.count(:distinct => true).should == 2
       TaggableModel.tagged_with(%w[a b], :all=>true, :on => :skills).where{name.like "%1"}.count(:distinct => true).should == 1
-
     end
   end
+ 
   describe "querying tags" do
 
     before :each do
@@ -387,5 +385,5 @@ describe TaggableModel do
         end
       end
     end
-  end
+  end 
 end
