@@ -199,7 +199,7 @@ module RocketTag
             squeel do
               list = tags_list[context]
               list << alias_tag_names.call(list)
-            
+              list.flatten!
               tags.name.in(list) & (taggings.context == context.to_s)
             end
           end.inject do |s,t|
@@ -225,6 +225,7 @@ module RocketTag
         # Isolate the aggregate uery by wrapping it as
         #
         # select * from ( ..... ) tags
+        # remove `.arel` dependency
         q = from(q.as(self.table_name))
         
         # Restrict by minimum tag counts if required
