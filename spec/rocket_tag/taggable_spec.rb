@@ -5,7 +5,7 @@ describe TaggableModel do
     clean_database!
     @model = TaggableModel.create
   end
-
+#=begin
   describe "parsing" do
     it "converts strings to arrays using ruby core lib CSV" do
       m = TaggableModel.new :skills => %q%hello, is it me, you are looking for, cat%
@@ -60,7 +60,7 @@ describe TaggableModel do
       @model.needs.should == ["a"]
     end
   end
-
+#=end
   describe "combining with active relation" do
     before :each do
       TaggableModel.create :name => "test 0", :needs => %w[x y z]
@@ -73,7 +73,7 @@ describe TaggableModel do
       TaggableModel.create :name => "app  2", :skills => %w[a b c]
       TaggableModel.create :name => "app  3", :skills => %w[a b c]
     end
-
+ 
     it "should generate the correct results" do
       TaggableModel.tagged_with(%w[a b], :all=>true).count(:distinct => true).should == 6
       TaggableModel.tagged_with(%w[a b], :all=>true).where{name.like "app%"}.count(:distinct => true).should == 3
@@ -81,7 +81,7 @@ describe TaggableModel do
       TaggableModel.tagged_with(%w[a b], :all=>true, :on => :skills).where{name.like "%1"}.count(:distinct => true).should == 1
     end
   end
- 
+
   describe "querying tags" do
 
     before :each do
@@ -136,11 +136,11 @@ describe TaggableModel do
           #<TaggableModel id: 4, name: "10", type: nil, foo: "A"> - 1 - a, c
           #<TaggableModel id: 5, name: "11", type: nil, foo: "B"> - 1 - a, c
           #<TaggableModel id: 7, name: "21", type: nil, foo: "B"> - 1 - german, jinglish, c, d
-          
+           
 #           r = TaggableModel.tagged_with(["a", "b", "german"]).all.each do |m|
 #             puts "#{m.inspect} - #{m.tags_count} - #{m.tags.map(&:name).join ', '}"
 #           end
-
+ 
           r = TaggableModel.tagged_with(["a", "b", "german"]).all
           r.find{|i|i.name == "00"}.tags_count.should == 3
           r.find{|i|i.name == "01"}.tags_count.should == 3
@@ -348,9 +348,6 @@ describe TaggableModel do
           TaggableModel.popular_tags(:on=>[:skills, :languages]).order('id asc').first.name.should == 'a'
           TaggableModel.popular_tags(:on=>[:skills, :languages]).order('id asc').last.name.should == 'jinglish'
           TaggableModel.popular_tags(:min=>2).all.length.should == 6 ## dirty!
-
-
-
         end
       end
 
@@ -385,5 +382,5 @@ describe TaggableModel do
         end
       end
     end
-  end 
+  end
 end
