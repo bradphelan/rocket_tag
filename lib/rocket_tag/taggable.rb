@@ -176,17 +176,16 @@ module RocketTag
       end
 
       def tagged_with tags_list, options = {}
-
+ 
         # Grab table name
         t = self.table_name
-
+        
         q = joins{taggings.tag}
-
+        
         alias_tag_names = lambda do |list| 
           names = RocketTag::Tag.select{:name}.where do
-            id.in(RocketTag::Tag.select{'alias_tags.alias_id'}
-              .joins(:alias).where{
-                tags.name.in(list)
+            id.in(RocketTag::Tag.select{'alias_tags.alias_id'}.joins(:alias).where{
+                tags.name.in(list) 
               })
           end
           names.map{|t| t.name}
@@ -201,7 +200,7 @@ module RocketTag
               list = tags_list[context]
               list << alias_tag_names.call(list)
             
-              tags.name.in(list.flatten!) & (taggings.context == context.to_s)
+              tags.name.in(list) & (taggings.context == context.to_s)
             end
           end.inject do |s,t|
             s | t
@@ -212,8 +211,9 @@ module RocketTag
         else
           # Any tag can match any context
           tags_list << alias_tag_names.call(tags_list) 
+          tags_list.flatten!
           q = q.
-            where{tags.name.in(tags_list.flatten!)}.
+            where{tags.name.in(tags_list)}.
             where(with_tag_context(options.delete(:on)))
         end
 
@@ -225,7 +225,7 @@ module RocketTag
         # Isolate the aggregate uery by wrapping it as
         #
         # select * from ( ..... ) tags
-        q = from(q.arel.as(self.table_name))
+        q = from(q.as(self.table_name))
         
         # Restrict by minimum tag counts if required
         min = options.delete :min 
@@ -263,7 +263,8 @@ module RocketTag
         # Isolate the aggregate query by wrapping it as
         #
         # select * from ( ..... ) tags
-        q = RocketTag::Tag.from(q.arel.as(RocketTag::Tag.table_name))
+        q = RocketTag::Tag.from(q.as(RocketTag::Tag.table_name))
+        #q = RocketTag::Tag.from(q.arel.as(RocketTag::Tag.table_name))
         
         # Restrict by minimum tag counts if required
         min = options.delete :min 
