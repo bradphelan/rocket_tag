@@ -197,7 +197,7 @@ module RocketTag
 
           c = tags_list.each_key.map do |context|
             squeel do
-              list = tags_list[context]
+              list = Array.wrap(tags_list[context])
               list << alias_tag_names.call(list)
               list.flatten!
               tags.name.in(list) & (taggings.context == context.to_s)
@@ -209,6 +209,8 @@ module RocketTag
           q = q.where(c)
 
         else
+          tags_list = Array(tags_list)
+
           # Any tag can match any context
           tags_list << alias_tag_names.call(tags_list) 
           tags_list.flatten!
