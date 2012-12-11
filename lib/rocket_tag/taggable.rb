@@ -233,8 +233,9 @@ module RocketTag
         q = q.where{tags_count>=min} if min 
 
         # Require all the tags if required
-        all = options.delete :all
-        q = q.where{tags_count==tags_list.length} if all
+        all, exact = options.delete(:all), options.delete(:exact)
+        q = q.where{tags_count==tags_list.length} if all || exact
+        q = q.joins{taggings.tag}.having('COUNT(tags.id) = ?', tags_list.length) if exact
 
         # Return the relation        
         q
