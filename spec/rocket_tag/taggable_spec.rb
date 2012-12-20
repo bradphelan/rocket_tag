@@ -127,45 +127,6 @@ describe TaggableModel do
       pending "Need to figure out how to verify eager loading other than manually inspect the log file"
     end
 
-    describe "#tagged_with" do
-      it "should count the number of matched tags" do
-        r = TaggableModel.tagged_with(["a", "b", "german"]).all
-        r.find{|i|i.name == "00"}.tags_count.should == 3
-        r.find{|i|i.name == "01"}.tags_count.should == 3
-        r.find{|i|i.name == "10"}.tags_count.should == 1
-        r.find{|i|i.name == "11"}.tags_count.should == 1
-        r.find{|i|i.name == "21"}.tags_count.should == 1
-
-        # The 'group by' operation to generate the count tags should
-        # be opaque to downstream operations. Thus count should
-        # return the correct number of records
-        r = TaggableModel.tagged_with(["a", "b", "german"]).count.should == 5
-
-        # It should be possible to cascade active relation queries on
-        # the
-        r = TaggableModel.tagged_with(["a", "b", "german"]).
-          where{tags_count>2}.count.should == 2
-
-        # The min option is a shortcut for a query on tags_count
-        r = TaggableModel.tagged_with(["a", "b", "german"], :min => 2).count.should == 2
-
-        r = TaggableModel.tagged_with(["a", "b", "german"], :on => :skills).all
-        r.find{|i|i.name == "00"}.tags_count.should == 2
-        r.find{|i|i.name == "01"}.tags_count.should == 2
-        r.find{|i|i.name == "10"}.tags_count.should == 1
-        r.find{|i|i.name == "11"}.tags_count.should == 1
-        r.find{|i|i.name == "21"}.should be_nil
-
-        # It should be possible to narrow scopes with tagged_with
-        r = @user0.taggable_models.tagged_with(["a", "b", "german"], :on => :skills).all
-        r.find{|i|i.name == "00"}.tags_count.should == 2
-        r.find{|i|i.name == "01"}.should be_nil
-        r.find{|i|i.name == "10"}.tags_count.should == 1
-        r.find{|i|i.name == "11"}.should be_nil
-        r.find{|i|i.name == "21"}.should be_nil
-      end
-    end
-
     describe "#tagged_similar" do
       it "should return similar items" do
         @t00.tagged_similar(:on => :skills).count.should == 3
@@ -214,6 +175,43 @@ describe TaggableModel do
     end
 
     describe "#tagged_with" do
+      it "should count the number of matched tags" do
+        r = TaggableModel.tagged_with(["a", "b", "german"]).all
+        r.find{|i|i.name == "00"}.tags_count.should == 3
+        r.find{|i|i.name == "01"}.tags_count.should == 3
+        r.find{|i|i.name == "10"}.tags_count.should == 1
+        r.find{|i|i.name == "11"}.tags_count.should == 1
+        r.find{|i|i.name == "21"}.tags_count.should == 1
+
+        # The 'group by' operation to generate the count tags should
+        # be opaque to downstream operations. Thus count should
+        # return the correct number of records
+        r = TaggableModel.tagged_with(["a", "b", "german"]).count.should == 5
+
+        # It should be possible to cascade active relation queries on
+        # the
+        r = TaggableModel.tagged_with(["a", "b", "german"]).
+          where{tags_count>2}.count.should == 2
+
+        # The min option is a shortcut for a query on tags_count
+        r = TaggableModel.tagged_with(["a", "b", "german"], :min => 2).count.should == 2
+
+        r = TaggableModel.tagged_with(["a", "b", "german"], :on => :skills).all
+        r.find{|i|i.name == "00"}.tags_count.should == 2
+        r.find{|i|i.name == "01"}.tags_count.should == 2
+        r.find{|i|i.name == "10"}.tags_count.should == 1
+        r.find{|i|i.name == "11"}.tags_count.should == 1
+        r.find{|i|i.name == "21"}.should be_nil
+
+        # It should be possible to narrow scopes with tagged_with
+        r = @user0.taggable_models.tagged_with(["a", "b", "german"], :on => :skills).all
+        r.find{|i|i.name == "00"}.tags_count.should == 2
+        r.find{|i|i.name == "01"}.should be_nil
+        r.find{|i|i.name == "10"}.tags_count.should == 1
+        r.find{|i|i.name == "11"}.should be_nil
+        r.find{|i|i.name == "21"}.should be_nil
+      end
+
       describe ":all => true" do
         it "should return records where *all* tags match on any context" do
           q0 = TaggableModel.tagged_with(["a", "german"], :all => true ).all
