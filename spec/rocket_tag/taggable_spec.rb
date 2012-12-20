@@ -38,6 +38,38 @@ describe TaggableModel do
       @model.languages = 100
       @model.save.should == false
     end
+
+    context 'forcing lowercase' do
+      let(:tags) { ['Foo', 'BAR', 'bAZ'] }
+
+      context 'when force_lowercase is set to true' do
+        before do
+          RocketTag.configure do |config|
+            config.force_lowercase = true
+          end
+        end
+
+        it 'should save the tags as lowercase',force:true do
+          expect do
+            @model.languages = ['Foo', 'BAR', 'bAZ']
+          end.to change { @model.languages }.to(tags.map(&:downcase))
+        end
+      end
+
+      context 'when force_lowercase is set to false' do
+        before do
+          RocketTag.configure do |config|
+            config.force_lowercase = false
+          end
+        end
+
+        it 'should save the tags as lowercase' do
+          expect do
+            @model.languages = ['Foo', 'BAR', 'bAZ']
+          end.to change { @model.languages }.to(tags)
+        end
+      end
+    end
   end
 
   describe "#reload" do

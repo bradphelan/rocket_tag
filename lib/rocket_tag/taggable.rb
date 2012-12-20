@@ -91,8 +91,14 @@ module RocketTag
       end
 
       def write_context context, list
+        clean_list = if RocketTag.configuration.force_lowercase
+          list.map(&:downcase)
+        else
+          list
+        end
+
         @contexts ||= {}
-        @contexts[context.to_sym] = list
+        @contexts[context.to_sym] = clean_list
       end
 
       def tags_for_context context
