@@ -91,14 +91,8 @@ module RocketTag
       end
 
       def write_context context, list
-        clean_list = if RocketTag.configuration.force_lowercase
-          list.map(&:downcase)
-        else
-          list
-        end
-
         @contexts ||= {}
-        @contexts[context.to_sym] = clean_list
+        @contexts[context.to_sym] = RocketTag.clean_tags(list)
       end
 
       def tags_for_context context
@@ -204,9 +198,10 @@ module RocketTag
           c = tags_list.each_key.map do |context|
             squeel do
               list = tags_list[context]
-              list << alias_tag_names.call(list)
-              list.flatten!
-              tags.name.in(list) & (taggings.context == context.to_s)
+              clean_list = RocketTag.clean_tags(list)
+              clean_list << alias_tag_names.call(clean_list)
+              clean_list.flatten!
+              tags.name.in(clean_list) & (taggings.context == context.to_s)
             end
           end.inject do |s,t|
             s | t
@@ -216,10 +211,11 @@ module RocketTag
 
         else
           # Any tag can match any context
-          tags_list << alias_tag_names.call(tags_list) 
-          tags_list.flatten!
+          clean_list = RocketTag.clean_tags(tags_list)
+          clean_list << alias_tag_names.call(clean_list)
+          clean_list.flatten!
           q = q.
-            where{tags.name.in(tags_list)}.
+            where{tags.name.in(clean_list)}.
             where(with_tag_context(options.delete(:on)))
         end
 

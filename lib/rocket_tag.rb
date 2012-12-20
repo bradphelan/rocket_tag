@@ -7,6 +7,14 @@ module RocketTag
     def configuration
       @configuration ||= Configuration.new
     end
+
+    def clean_tags(tags)
+      return tags unless tags.is_a?(Array)
+
+      tags = tags.dup
+      tags = tags.map(&:downcase) if RocketTag.configuration.force_lowercase
+      tags
+    end
   end
 end
 
