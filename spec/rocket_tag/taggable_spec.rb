@@ -207,6 +207,20 @@ describe TaggableModel do
     end
 
     describe "#tagged_with" do
+      describe 'passed argument' do
+        subject { TaggableModel.create(:skills => ['foo']) }
+
+        it 'should be possible to pass an array as the argument' do
+          TaggableModel.tagged_with(['foo'], :on => :skills).should eq([subject])
+          TaggableModel.tagged_with(:skills => ['foo']).should eq([subject])
+        end
+
+        it 'should be possible to pass a string as the argument' do
+          TaggableModel.tagged_with('foo', :on => :skills).should eq([subject])
+          TaggableModel.tagged_with(:skills => 'foo').should eq([subject])
+        end
+      end
+
       it "should count the number of matched tags" do
         r = TaggableModel.tagged_with(["a", "b", "german"]).all
         r.find{|i|i.name == "00"}.tags_count.should == 3
