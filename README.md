@@ -20,6 +20,17 @@ Create the migration at the command line
 	rake db:migrate
 	rake db:test:prepare
 
+Configuration
+-------------
+
+Add configurations to `config/initializers/rocket_tag.rb`:
+
+```ruby
+RocketTag.configure do |config|
+  config.force_lowercase = true # Automatically convert all tags to lowercase (optional, default: false)
+end
+```
+
 Usage
 -----
 

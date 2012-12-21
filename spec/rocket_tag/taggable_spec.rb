@@ -21,6 +21,38 @@ describe TaggableModel do
     end
   end
 
+  context 'converting tags to lowercase' do
+    let(:tags) { ['Foo', 'BAR', 'bAZ'] }
+
+    context 'when force_lowercase is set to true' do
+      before do
+        RocketTag.configure do |config|
+          config.force_lowercase = true
+        end
+      end
+
+      it 'should convert the tags as lowercase' do
+        expect do
+          @model.languages = ['Foo', 'BAR', 'bAZ']
+        end.to change { @model.languages }.to(tags.map(&:downcase))
+      end
+    end
+
+    context 'when force_lowercase is set to false' do
+      before do
+        RocketTag.configure do |config|
+          config.force_lowercase = false
+        end
+      end
+
+      it 'should convert the tags as lowercase' do
+        expect do
+          @model.languages = ['Foo', 'BAR', 'bAZ']
+        end.to change { @model.languages }.to(tags)
+      end
+    end
+  end
+
   describe "#save" do
     it "persists the tags cache to the database" do
       @model.languages = ["a", "b", "c"]
@@ -376,9 +408,24 @@ describe TaggableModel do
           end
 
           # Sanity check the two queries are not identical
-          @user0.taggable_models.popular_tags.should_not == 
+          @user0.taggable_models.popular_tags.should_not ==
             @user1.taggable_models.popular_tags
 
+        end
+      end
+
+      describe 'converting tags to lowercase' do
+        before do
+          RocketTag.configure do |config|
+            config.force_lowercase = true
+          end
+        end
+
+        let(:tags) { ['Foo', 'BAR', 'bAZ'] }
+        subject { TaggableModel.create :skills => tags.map(&:downcase) }
+
+        it 'should find the tags in lowercase' do
+          TaggableModel.tagged_with(tags, :on => :skills).should eq([subject])
         end
       end
     end
