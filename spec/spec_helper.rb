@@ -20,6 +20,11 @@ end
 Bundler.require
 require File.expand_path('../../lib/rocket_tag', __FILE__)
 
+RSpec.configure do |config|
+  config.filter_run :focus => true
+  config.run_all_when_everything_filtered = true
+end
+
 unless [].respond_to?(:freq)
   class Array
     def freq
