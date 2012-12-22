@@ -321,55 +321,30 @@ describe TaggableModel do
         end
 
         describe ':exact => true, :on => context' do
-          let(:skills_foo_model)            { TaggableModel.create(:skills => ['foo']) }
-          let(:skills_foo_bar_model)        { TaggableModel.create(:skills => ['foo', 'bar']) }
-          let(:skills_foo_bar_baz_model)    { TaggableModel.create(:skills => ['foo', 'bar', 'baz']) }
-          let(:languages_foo_model)         { TaggableModel.create(:languages => ['foo']) }
-          let(:languages_foo_bar_model)     { TaggableModel.create(:languages => ['foo', 'bar']) }
-          let(:languages_foo_bar_baz_model) { TaggableModel.create(:languages => ['foo', 'bar', 'baz']) }
+          let(:skills_foo_model)         { TaggableModel.create :languages => ['foo', 'bar'],        :skills => ['foo'] }
+          let(:skills_foo_bar_model)     { TaggableModel.create :languages => ['foo', 'bar', 'baz'], :skills => ['foo', 'bar'] }
+          let(:skills_foo_bar_baz_model) { TaggableModel.create :languages => ['foo'],               :skills => ['foo', 'bar', 'baz'] }
+          let(:lang_foo_model)           { TaggableModel.create :languages => ['foo'],               :skills => ['zoo', 'foo', 'bar'] }
+          let(:lang_foo_bar_model)       { TaggableModel.create :languages => ['foo', 'bar'],        :skills => ['zoo', 'foo', 'bar', 'baz'] }
+          let(:lang_foo_bar_baz_model)   { TaggableModel.create :languages => ['foo', 'bar', 'baz'], :skills => ['zoo', 'foo'] }
+          let(:tagged_models)            { TaggableModel.tagged_with(exact_tags, :exact => true, :on => :skills) }
 
-          context 'with the correct context' do
-            let(:context) { :skills }
-
-            it 'should not return any records with incorrect context' do
-              [languages_foo_model, languages_foo_bar_model, languages_foo_bar_baz_model].each do |model|
-                TaggableModel.tagged_with(exact_tags, :exact => true, :on => context).should_not include(model)
-              end
-            end
-
-            it 'should not return records with correct context that are missing any of the speficied tags' do
-              TaggableModel.tagged_with(exact_tags, :exact => true, :on => context).should_not include(skills_foo_model)
-            end
-
-            it 'should not return records with correct context that have more than the specified tags' do
-              TaggableModel.tagged_with(exact_tags, :exact => true, :on => context).should_not include(skills_foo_bar_baz_model)
-            end
-
-            it 'should return records with correct context that have exactly the specificed tags' do
-              TaggableModel.tagged_with(exact_tags, :exact => true, :on => context).should include(skills_foo_bar_model)
+          it 'should not return any records with incorrect context' do
+            [lang_foo_model, lang_foo_bar_model, lang_foo_bar_baz_model].each do |model|
+              tagged_models.should_not include(model)
             end
           end
 
-          context 'with the incorrect context' do
-            let(:context) { :languages }
+          it 'should not return records with correct context that are missing any of the speficied tags' do
+            tagged_models.should_not include(skills_foo_model)
+          end
 
-            it 'should not return any records with incorrect context' do
-              [skills_foo_model, skills_foo_bar_model, skills_foo_bar_baz_model].each do |model|
-                TaggableModel.tagged_with(exact_tags, :exact => true, :on => context).should_not include(model)
-              end
-            end
+          it 'should not return records with correct context that have more than the specified tags' do
+            tagged_models.should_not include(skills_foo_bar_baz_model)
+          end
 
-            it 'should not return records with correct context that are missing any of the speficied tags' do
-              TaggableModel.tagged_with(exact_tags, :exact => true, :on => context).should_not include(languages_foo_model)
-            end
-
-            it 'should not return records with correct context that have more than the specified tags' do
-              TaggableModel.tagged_with(exact_tags, :exact => true, :on => context).should_not include(languages_foo_bar_baz_model)
-            end
-
-            it 'should return records with correct context that have exactly the specificed tags' do
-              TaggableModel.tagged_with(exact_tags, :exact => true, :on => context).should include(languages_foo_bar_model)
-            end
+          it 'should return records with correct context that have exactly the specificed tags' do
+            tagged_models.should include(skills_foo_bar_model)
           end
         end
       end
