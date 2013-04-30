@@ -13,6 +13,9 @@ describe TaggableModel do
 
       m = TaggableModel.new :skills => %q%hello, "is it me, you are looking for", cat%
       m.skills.should == ["hello", "is it me, you are looking for", "cat"]
+
+      m = TaggableModel.new :skills => "hello,\n is it me\n you are looking for,\n cat"
+      m.skills.should == ["hello", "is it me you are looking for", "cat"]
     end
 
     it "parses an empty string to an empty array" do
