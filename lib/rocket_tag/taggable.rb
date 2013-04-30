@@ -43,6 +43,7 @@ module RocketTag
           #     hello,"foo"
           return [] if list.empty?
           list = list.gsub /,\s+"/, ',"'
+          list = list.gsub /\n/,    ''
           list = list.parse_csv.map &:strip
         else
           list
