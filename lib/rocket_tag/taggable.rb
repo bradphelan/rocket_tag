@@ -35,7 +35,7 @@ module RocketTag
         require 'csv'
         if list.kind_of? String
           # for some reason CSV parser cannot handle
-          #     
+          #
           #     hello, "foo"
           #
           # but must be
@@ -106,13 +106,13 @@ module RocketTag
       def tagged_similar options = {}
         context = options.delete :on
 
-        contexts = self.class.normalize_contexts context, 
+        contexts = self.class.normalize_contexts context,
           self.class.rocket_tag.contexts
 
-        q = self.class.tagged_with Hash[*contexts.map{|c| 
+        q = self.class.tagged_with Hash[*contexts.map{|c|
           [c, tags_for_context(c)]
         }.flatten(1)]
-       
+
         # Exclude self from the results
         q.where{id!=my{id}}
 
@@ -149,7 +149,7 @@ module RocketTag
       def validate_contexts contexts
         contexts.each do |context|
           unless is_valid_context? context
-            raise Exception.new("#{context} is not a valid tag context for #{self}") 
+            raise Exception.new("#{context} is not a valid tag context for #{self}")
           end
         end
       end
@@ -176,16 +176,16 @@ module RocketTag
       end
 
       def tagged_with tags_list, options = {}
- 
+
         # Grab table name
         t = self.table_name
-        
+
         q = joins{taggings.tag}
-        
-        alias_tag_names = lambda do |list| 
+
+        alias_tag_names = lambda do |list|
           names = RocketTag::Tag.select{:name}.where do
             id.in(RocketTag::Tag.select{'alias_tags.alias_id'}.joins(:alias).where{
-                tags.name.in(list) 
+                tags.name.in(list)
               })
           end
           names.map{|t| t.name}
@@ -229,17 +229,17 @@ module RocketTag
         # select * from ( ..... ) tags
         # remove `.arel` dependency
         q = from(q.as(self.table_name))
-        
+
         # Restrict by minimum tag counts if required
-        min = options.delete :min 
-        q = q.where{tags_count>=min} if min 
+        min = options.delete :min
+        q = q.where{tags_count>=min} if min
 
         # Require all the tags if required
         all, exact = options.delete(:all), options.delete(:exact)
         q = q.where{tags_count==tags_list.length} if all || exact
         q = q.joins{taggings.tag}.group("#{self.table_name}.id").having('COUNT(tags.id) = ?', tags_list.length) if exact
 
-        # Return the relation        
+        # Return the relation
         q
       end
 
@@ -269,10 +269,10 @@ module RocketTag
         # select * from ( ..... ) tags
         q = RocketTag::Tag.from(q.as(RocketTag::Tag.table_name))
         #q = RocketTag::Tag.from(q.arel.as(RocketTag::Tag.table_name))
-        
+
         # Restrict by minimum tag counts if required
-        min = options.delete :min 
-        q = q.where{tags_count>=min} if min 
+        min = options.delete :min
+        q = q.where{tags_count>=min} if min
 
         # Return the relation
         q
@@ -308,7 +308,7 @@ module RocketTag
                 exisiting_tag_names = exisiting_tags.map &:name
 
                 # Find missing tags
-                tags_names_to_create = list - exisiting_tag_names 
+                tags_names_to_create = list - exisiting_tag_names
 
                 # Create missing tags
                 created_tags = tags_names_to_create.map do |tag_name|
@@ -319,9 +319,9 @@ module RocketTag
                 tags_to_assign = exisiting_tags + created_tags
 
                 tags_to_assign.each do |tag|
-                  tagging = Tagging.new :tag => tag, 
-                    :taggable => self, 
-                    :context => context, 
+                  tagging = Tagging.new :tag => tag,
+                    :taggable => self,
+                    :context => context,
                     :tagger => nil
                   self.taggings << tagging
                 end
@@ -346,15 +346,15 @@ module RocketTag
         contexts.each do |context|
           class_eval do
 
-            has_many "#{context}_taggings".to_sym, 
-              :source => :taggable,  
-              :as => :taggable,
-              :conditions => { :context => context }
+            has_many "#{context}_taggings".to_sym,
+              lambda { where(:context => context) },
+              :source => :taggable,
+              :as => :taggable
 
             has_many "#{context}_tags".to_sym,
+              lambda { where(["taggings.context = ?", context]) },
               :source => :tag,
-              :through => :taggings,
-              :conditions => [ "taggings.context = ?", context ]
+              :through => :taggings
 
             validate context do
               if not send(context).kind_of? Enumerable
