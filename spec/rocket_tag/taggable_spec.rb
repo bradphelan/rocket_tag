@@ -107,10 +107,10 @@ describe TaggableModel do
     end
 
     it "should generate the correct results" do
-      TaggableModel.tagged_with(%w[a b], :all=>true).count(:distinct => true).should == 6
-      TaggableModel.tagged_with(%w[a b], :all=>true).where{name.like "app%"}.count(:distinct => true).should == 3
-      TaggableModel.tagged_with(%w[a b], :all=>true).where{name.like "%1"}.count(:distinct => true).should == 2
-      TaggableModel.tagged_with(%w[a b], :all=>true, :on => :skills).where{name.like "%1"}.count(:distinct => true).should == 1
+      TaggableModel.tagged_with(%w[a b], :all=>true).distinct.count.should == 6
+      TaggableModel.tagged_with(%w[a b], :all=>true).where{name.like "app%"}.distinct.count.should == 3
+      TaggableModel.tagged_with(%w[a b], :all=>true).where{name.like "%1"}.distinct.count.should == 2
+      TaggableModel.tagged_with(%w[a b], :all=>true, :on => :skills).where{name.like "%1"}.distinct.count.should == 1
     end
   end
 
@@ -173,7 +173,7 @@ describe TaggableModel do
 
       it "should return similar items in the correct order with the correct tags_count" do
         # ----
-        similar = @t00.tagged_similar(:on => :skills).all
+        similar = @t00.tagged_similar(:on => :skills).to_a
         similar[0].id.should == @t01.id
         similar[1].id.should == @t10.id
         similar[2].id.should == @t11.id
@@ -183,7 +183,7 @@ describe TaggableModel do
         similar[2].tags_count.should == 1
 
         # ----
-        similar = @t00.tagged_similar(:on => :languages).all.sort
+        similar = @t00.tagged_similar(:on => :languages).to_a.sort
         similar[0].id.should == @t01.id
         similar[1].id.should == @t10.id
         similar[2].id.should == @t21.id
@@ -193,7 +193,7 @@ describe TaggableModel do
         similar[2].tags_count.should == 1
 
         # ----
-        similar = @t00.tagged_similar.all
+        similar = @t00.tagged_similar.to_a
         similar[0].id.should == @t01.id
         similar[1].id.should == @t10.id
         similar[2].id.should == @t11.id
@@ -208,7 +208,7 @@ describe TaggableModel do
 
     describe "#tagged_with" do
       it "should count the number of matched tags" do
-        r = TaggableModel.tagged_with(["a", "b", "german"]).all
+        r = TaggableModel.tagged_with(["a", "b", "german"]).to_a
         r.find{|i|i.name == "00"}.tags_count.should == 3
         r.find{|i|i.name == "01"}.tags_count.should == 3
         r.find{|i|i.name == "10"}.tags_count.should == 1
@@ -228,7 +228,7 @@ describe TaggableModel do
         # The min option is a shortcut for a query on tags_count
         r = TaggableModel.tagged_with(["a", "b", "german"], :min => 2).count.should == 2
 
-        r = TaggableModel.tagged_with(["a", "b", "german"], :on => :skills).all
+        r = TaggableModel.tagged_with(["a", "b", "german"], :on => :skills).to_a
         r.find{|i|i.name == "00"}.tags_count.should == 2
         r.find{|i|i.name == "01"}.tags_count.should == 2
         r.find{|i|i.name == "10"}.tags_count.should == 1
@@ -236,7 +236,7 @@ describe TaggableModel do
         r.find{|i|i.name == "21"}.should be_nil
 
         # It should be possible to narrow scopes with tagged_with
-        r = @user0.taggable_models.tagged_with(["a", "b", "german"], :on => :skills).all
+        r = @user0.taggable_models.tagged_with(["a", "b", "german"], :on => :skills).to_a
         r.find{|i|i.name == "00"}.tags_count.should == 2
         r.find{|i|i.name == "01"}.should be_nil
         r.find{|i|i.name == "10"}.tags_count.should == 1
@@ -246,7 +246,7 @@ describe TaggableModel do
 
       describe ":all => true" do
         it "should return records where *all* tags match on any context" do
-          q0 = TaggableModel.tagged_with(["a", "german"], :all => true ).all
+          q0 = TaggableModel.tagged_with(["a", "german"], :all => true ).to_a
           q0.length.should == 2
           q0.should include @t00
           q0.should include @t01
@@ -255,7 +255,7 @@ describe TaggableModel do
 
       describe ":all => false" do
         it "should return records where *any* tags match on any context" do
-          q0 = TaggableModel.tagged_with(["a", "german"] ).all
+          q0 = TaggableModel.tagged_with(["a", "german"] ).to_a
           q0.length.should == 5
           q0.should include @t00
           q0.should include @t01
@@ -270,7 +270,7 @@ describe TaggableModel do
 
       describe ":all => false, :on => context" do
         it "should return records where *any* tags match on the specific context" do
-          q0 = TaggableModel.tagged_with(["a", "german"], :on => :skills ).all
+          q0 = TaggableModel.tagged_with(["a", "german"], :on => :skills ).to_a
           q0.length.should == 4
           q0.should include @t00
           q0.should include @t01
@@ -285,14 +285,14 @@ describe TaggableModel do
       describe ":all => true, :on => context" do
         it "should return records where *all* tags match on the specific context" do
           q0 = TaggableModel.tagged_with(["a", "german"], :on => :skills, :all => true )
-          q0.all.length.should == 0
+          q0.to_a.length.should == 0
 
-          q0 = TaggableModel.tagged_with(["a", "b"], :on => :skills, :all => true ).all
+          q0 = TaggableModel.tagged_with(["a", "b"], :on => :skills, :all => true ).to_a
           q0.length.should == 2
           q0.should include @t00
           q0.should include @t01
 
-          q0 = TaggableModel.tagged_with(["a", "b"], :on => :skills, :all => true ).where{foo=="A"}.all
+          q0 = TaggableModel.tagged_with(["a", "b"], :on => :skills, :all => true ).where{foo=="A"}.to_a
           q0.length.should == 1
           q0.should include @t00
           q0.should_not include @t01
@@ -422,8 +422,8 @@ describe TaggableModel do
 
       describe "#popular_tags" do
         it "should return correct list (and correctly ordered) of popular tags for class and context" do
-          TaggableModel.popular_tags.all.length.should == RocketTag::Tag.all.count
-          TaggableModel.popular_tags.limit(10).all.length.should == 10
+          TaggableModel.popular_tags.to_a.length.should == RocketTag::Tag.all.count
+          TaggableModel.popular_tags.limit(10).to_a.length.should == 10
           TaggableModel.popular_tags.order('tags_count desc, name desc').first.name.should == 'c'
           TaggableModel.popular_tags.order('id asc').first.name.should == 'a'
           TaggableModel.popular_tags.order('id asc').last.name.should == 'jinglish'
@@ -431,7 +431,7 @@ describe TaggableModel do
           TaggableModel.popular_tags(:on=>:skills).order('name asc').last.name.should == 'y'
           TaggableModel.popular_tags(:on=>[:skills, :languages]).order('id asc').first.name.should == 'a'
           TaggableModel.popular_tags(:on=>[:skills, :languages]).order('id asc').last.name.should == 'jinglish'
-          TaggableModel.popular_tags(:min=>2).all.length.should == 6 ## dirty!
+          TaggableModel.popular_tags(:min=>2).to_a.length.should == 6 ## dirty!
         end
       end
 
