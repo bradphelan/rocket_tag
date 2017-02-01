@@ -10,8 +10,9 @@ module Squeel
         #
         # This little helper generates such a group by
         def group_by_all_columns
-          cn = self.column_names
-          group { cn.map { |col| __send__(col) } }
+          model_columns = self.column_names
+          tag_columns = %w(taggings.id tags.id)
+          group { model_columns.map { |col| __send__(col) } + tag_columns }
         end
 
       end
