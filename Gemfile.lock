@@ -25,7 +25,7 @@ GEM
     pg (0.14.0)
     polyamorous (0.5.0)
       activerecord (~> 3.0)
-    rake (0.9.2.2)
+    rake (12.3.3)
     rspec (2.10.0)
       rspec-core (~> 2.10.0)
       rspec-expectations (~> 2.10.0)
