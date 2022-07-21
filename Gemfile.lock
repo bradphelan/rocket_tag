@@ -39,7 +39,7 @@ GEM
       activerecord (~> 3.0)
       activesupport (~> 3.0)
       polyamorous (~> 0.5.0)
-    tzinfo (0.3.33)
+    tzinfo (0.3.61)
     yard (0.6.8)
 
 PLATFORMS
